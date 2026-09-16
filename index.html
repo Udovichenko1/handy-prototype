@@ -955,14 +955,20 @@
   .profile-head .who strong{ display:block; font-size:17px; color:#211F26; }
   .profile-head .who span{ display:block; font-size:12.5px; color:#8A8790; margin-top:2px; }
 
-  .role-switch{ display:flex; gap:8px; margin-bottom:20px; }
-  .role-switch button{
-    flex:1; padding:10px; border-radius:14px;
-    border:1.5px solid #EDE7E1; background:#fff;
-    font-family:inherit; font-weight:700; font-size:13px; color:#6E6B75;
-    cursor:pointer; transition:border-color .2s ease, background .2s ease, color .2s ease;
+  .role-badge{
+    display:flex; align-items:center; gap:10px;
+    background:#211F26; color:#fff;
+    padding:13px 16px; border-radius:16px;
+    font-weight:700; font-size:14.5px;
+    margin-bottom:20px;
   }
-  .role-switch button.active{ background:#211F26; border-color:#211F26; color:#fff; }
+  .role-badge .r-icon{
+    width:30px; height:30px; min-width:30px;
+    border-radius:10px;
+    background:linear-gradient(145deg,#FFB27A,#FF8A4D);
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px;
+  }
 
   .stat-row{ display:flex; gap:10px; margin-bottom:22px; }
   .stat-tile{ flex:1; background:#FBF9F7; border-radius:16px; padding:14px 10px; text-align:center; }
@@ -1393,9 +1399,9 @@
                 </div>
               </div>
 
-              <div class="role-switch">
-                <button data-role="client" type="button">📦 <span data-i18n="role_label_client">Klient</span></button>
-                <button data-role="worker" type="button">🔧 <span data-i18n="role_label_worker">Wykonawca</span></button>
+              <div class="role-badge">
+                <span class="r-icon" id="profile-role-icon">📦</span>
+                <span id="profile-role-label">Klient</span>
               </div>
 
               <div class="stat-row">
@@ -2334,18 +2340,9 @@ function renderProfile(){
   document.getElementById('profile-name').textContent = name;
   document.getElementById('profile-email').textContent = userEmail || '—';
   document.getElementById('profile-avatar').textContent = name.trim().charAt(0).toUpperCase() || 'H';
-  document.querySelectorAll('.role-switch button').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.role === selectedRole);
-  });
+  document.getElementById('profile-role-icon').textContent = selectedRole === 'worker' ? '🔧' : '📦';
+  document.getElementById('profile-role-label').textContent = roleLabel();
 }
-
-document.querySelectorAll('.role-switch button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    selectedRole = btn.dataset.role;
-    renderProfile();
-    showToast(T[currentLang].toast_role_changed(roleLabel()));
-  });
-});
 
 document.querySelectorAll('.menu-row[data-menu]').forEach(btn => {
   btn.addEventListener('click', () => showToast(T[currentLang].toast_menu_soon));
