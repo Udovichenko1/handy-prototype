@@ -644,9 +644,9 @@
     min-height:0;
     position:relative;
     overflow:hidden;
-    background:#FBF3E7;
+    background:#FFFFFF;
   }
-  #map-canvas{ position:absolute; inset:0; z-index:0; background:#FBF3E7; }
+  #map-canvas{ position:absolute; inset:0; z-index:0; background:#FFFFFF; }
   .maplibregl-map{ font-family:'Plus Jakarta Sans', sans-serif; }
   .job-marker-wrap{ cursor:pointer; }
 
@@ -2202,31 +2202,31 @@ function applyBrandTheme(map){
     const id = layer.id;
     try{
       if(layer.type === 'background'){
-        map.setPaintProperty(id, 'background-color', '#FBF3E7');
+        map.setPaintProperty(id, 'background-color', '#FFFFFF');
       } else if(sl === 'water' && layer.type === 'fill'){
-        map.setPaintProperty(id, 'fill-color', '#5EC2DC');
+        map.setPaintProperty(id, 'fill-color', '#C9C9C6');
       } else if(sl === 'waterway' && layer.type === 'line'){
-        map.setPaintProperty(id, 'line-color', '#5EC2DC');
+        map.setPaintProperty(id, 'line-color', '#C9C9C6');
       } else if((sl === 'landcover' || sl === 'landuse' || sl === 'park') && layer.type === 'fill'){
         const hay = (id + JSON.stringify(layer.filter || '')).toLowerCase();
         if(/park|grass|wood|forest|farmland|meadow|cemetery|recreation/.test(hay)){
-          map.setPaintProperty(id, 'fill-color', '#8FC96B');
+          map.setPaintProperty(id, 'fill-color', '#EEEEEA');
         } else {
-          map.setPaintProperty(id, 'fill-color', '#FBF3E7');
+          map.setPaintProperty(id, 'fill-color', '#FFFFFF');
         }
       } else if(sl === 'building' && layer.type === 'fill'){
-        map.setPaintProperty(id, 'fill-color', '#FFDCB8');
-        try{ map.setPaintProperty(id, 'fill-outline-color', '#F5B98A'); }catch(e){}
+        map.setPaintProperty(id, 'fill-color', '#E7E6E1');
+        try{ map.setPaintProperty(id, 'fill-outline-color', '#D3D2CC'); }catch(e){}
       } else if(sl === 'transportation' && layer.type === 'line'){
         const isMajor = /motorway|trunk|primary/i.test(id);
         const isCasing = /casing/i.test(id);
         if(isMajor){
-          map.setPaintProperty(id, 'line-color', isCasing ? '#D8551F' : '#FF8A4D');
+          map.setPaintProperty(id, 'line-color', isCasing ? '#000000' : '#211F26');
         } else {
-          map.setPaintProperty(id, 'line-color', isCasing ? '#E8B892' : '#FFFFFF');
+          map.setPaintProperty(id, 'line-color', isCasing ? '#B6B4AC' : '#DEDDD6');
         }
       } else if(sl === 'boundary' && layer.type === 'line'){
-        map.setPaintProperty(id, 'line-color', '#C98F5C');
+        map.setPaintProperty(id, 'line-color', '#C4C2BA');
       } else if(layer.type === 'symbol'){
         try{
           if(map.getLayoutProperty(id, 'text-field') !== undefined){
