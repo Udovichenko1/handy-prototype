@@ -644,26 +644,12 @@
     min-height:0;
     position:relative;
     overflow:hidden;
-    background:
-      radial-gradient(ellipse 230px 170px at 18% 22%, rgba(163,184,132,.32), transparent 60%),
-      radial-gradient(ellipse 200px 240px at 80% 58%, rgba(163,184,132,.28), transparent 60%),
-      radial-gradient(ellipse 170px 130px at 58% 12%, rgba(163,184,132,.22), transparent 60%),
-      radial-gradient(ellipse 220px 180px at 30% 85%, rgba(163,184,132,.2), transparent 60%),
-      #F5F1E8;
+    background:#F5F1E8;
   }
-  .map-roads{ position:absolute; inset:0; width:100%; height:100%; opacity:.5; }
-  .map-label{
-    position:absolute;
-    font-size:10px;
-    font-weight:800;
-    letter-spacing:.06em;
-    text-transform:uppercase;
-    color:#B9AF9C;
-  }
-  .map-label.center{ font-size:13px; color:#A69B84; letter-spacing:.08em; }
+  #leaflet-map{ position:absolute; inset:0; z-index:0; background:#F5F1E8; }
+  .leaflet-container{ font-family:'Plus Jakarta Sans', sans-serif; }
 
   .pin-price{
-    position:absolute;
     background:#211F26;
     color:#fff;
     font-size:11px;
@@ -672,19 +658,10 @@
     border-radius:999px;
     box-shadow:0 4px 10px rgba(0,0,0,.16);
     white-space:nowrap;
-  }
-  .pin-count{
-    position:absolute;
-    width:26px; height:26px;
-    border-radius:50%;
-    background:#fff;
-    border:2px solid #E4DFDA;
-    display:flex; align-items:center; justify-content:center;
-    font-size:11.5px; font-weight:700; color:#6E6B75;
-    box-shadow:0 3px 8px rgba(0,0,0,.1);
+    cursor:pointer;
+    display:inline-block;
   }
   .pin-selected{
-    position:absolute;
     background:#FF8A4D;
     color:#fff;
     padding:8px 13px 8px 11px;
@@ -692,13 +669,10 @@
     font-size:13px;
     font-weight:800;
     box-shadow:0 10px 20px rgba(255,138,77,.4);
-    display:flex; align-items:center; gap:5px;
+    display:inline-flex; align-items:center; gap:5px;
     cursor:pointer;
-    border:none;
-    font-family:inherit;
-    transition:transform .15s ease;
+    white-space:nowrap;
   }
-  .pin-selected:active{ transform:scale(.95); }
 
   .map-toggle{
     position:absolute;
@@ -882,6 +856,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <div class="wrap">
   <div class="masthead">
@@ -1098,14 +1074,7 @@
             </div>
 
             <div class="map-area" id="map-area">
-              <svg class="map-roads" viewBox="0 0 400 700" preserveAspectRatio="none">
-                <path d="M0,130 C100,170 180,90 260,150 S 400,230 400,190" stroke="#DED7C8" stroke-width="3" fill="none"/>
-                <path d="M40,0 C60,150 20,300 90,450 S 60,650 100,700" stroke="#DED7C8" stroke-width="3" fill="none"/>
-                <path d="M0,430 C120,410 220,470 400,420" stroke="#DED7C8" stroke-width="3" fill="none"/>
-                <path d="M320,0 C300,180 360,320 300,500 S 340,650 320,700" stroke="#DED7C8" stroke-width="2.5" fill="none"/>
-              </svg>
-              <div id="map-labels"></div>
-              <div id="map-pins"></div>
+              <div id="leaflet-map"></div>
               <div class="job-list" id="job-list"></div>
 
               <div class="bottom-sheet" id="bottom-sheet">
@@ -1560,41 +1529,51 @@ screens.splash.addEventListener('click', () => goTo('auth'));
 
 // ---------- Radar (map) ----------
 const JOBS = [
-  { id:1, emoji:'📦', title:'Pomoc przy przeprowadzce', district:'Mokotów', time:'sob 21.09 · 14:00–18:00', distance:'1.2 km', price:120, top:'30%', left:'22%' },
-  { id:2, emoji:'🛋️', title:'Montaż szafy IKEA', district:'Wola', time:'dziś · 18:00–19:30', distance:'0.8 km', price:60, top:'46%', left:'68%' },
-  { id:3, emoji:'🌿', title:'Koszenie trawnika', district:'Ursynów', time:'niedz. 22.09 · 10:00–12:00', distance:'2.1 km', price:45, top:'70%', left:'30%' },
-  { id:4, emoji:'🧹', title:'Sprzątanie mieszkania', district:'Śródmieście', time:'jutro · 09:00–11:00', distance:'1.5 km', price:80, top:'22%', left:'58%' },
-  { id:5, emoji:'❄️', title:'Odśnieżanie podjazdu', district:'Bemowo', time:'dziś · 07:00–08:00', distance:'0.6 km', price:50, top:'58%', left:'14%' },
-  { id:6, emoji:'📮', title:'Przenoszenie pudeł', district:'Praga Płd.', time:'sob 21.09 · 11:00–13:00', distance:'3.0 km', price:40, top:'16%', left:'30%' },
-  { id:7, emoji:'🔧', title:'Drobne naprawy hydrauliczne', district:'Żoliborz', time:'jutro · 16:00–17:00', distance:'1.9 km', price:70, top:'64%', left:'78%' },
-  { id:8, emoji:'🚚', title:'Rozładunek dostawy', district:'Ochota', time:'dziś · 13:00–14:00', distance:'0.4 km', price:35, top:'40%', left:'42%' }
+  { id:1, emoji:'📦', title:'Pomoc przy przeprowadzce', district:'Mokotów', time:'sob 21.09 · 14:00–18:00', distance:'1.2 km', price:120, lat:52.1900, lng:21.0300 },
+  { id:2, emoji:'🛋️', title:'Montaż szafy IKEA', district:'Wola', time:'dziś · 18:00–19:30', distance:'0.8 km', price:60, lat:52.2350, lng:20.9700 },
+  { id:3, emoji:'🌿', title:'Koszenie trawnika', district:'Ursynów', time:'niedz. 22.09 · 10:00–12:00', distance:'2.1 km', price:45, lat:52.1500, lng:21.0400 },
+  { id:4, emoji:'🧹', title:'Sprzątanie mieszkania', district:'Śródmieście', time:'jutro · 09:00–11:00', distance:'1.5 km', price:80, lat:52.2297, lng:21.0122 },
+  { id:5, emoji:'❄️', title:'Odśnieżanie podjazdu', district:'Bemowo', time:'dziś · 07:00–08:00', distance:'0.6 km', price:50, lat:52.2500, lng:20.9200 },
+  { id:6, emoji:'📮', title:'Przenoszenie pudeł', district:'Praga Płd.', time:'sob 21.09 · 11:00–13:00', distance:'3.0 km', price:40, lat:52.2100, lng:21.0700 },
+  { id:7, emoji:'🔧', title:'Drobne naprawy hydrauliczne', district:'Żoliborz', time:'jutro · 16:00–17:00', distance:'1.9 km', price:70, lat:52.2650, lng:20.9800 },
+  { id:8, emoji:'🚚', title:'Rozładunek dostawy', district:'Ochota', time:'dziś · 13:00–14:00', distance:'0.4 km', price:35, lat:52.2150, lng:20.9800 }
 ];
 let selectedJobId = 1;
 let mapView = 'map';
+let leafletMap = null;
+const jobMarkers = {};
 
-function renderMapLabels(){
-  const labels = [
-    { t:'ŻOLIBORZ', top:'8%', left:'30%' }, { t:'BIELANY', top:'6%', left:'68%' },
-    { t:'WOLA', top:'34%', left:'6%' }, { t:'PRAGA', top:'30%', left:'86%' },
-    { t:'ŚRÓDMIEŚCIE', top:'48%', left:'46%', center:true },
-    { t:'OCHOTA', top:'62%', left:'10%' }, { t:'MOKOTÓW', top:'66%', left:'62%' },
-    { t:'URSYNÓW', top:'88%', left:'40%' }
-  ];
-  document.getElementById('map-labels').innerHTML = labels.map(l =>
-    `<span class="map-label${l.center ? ' center' : ''}" style="top:${l.top};left:${l.left}">${l.t}</span>`
-  ).join('');
+function initLeafletMap(){
+  leafletMap = L.map('leaflet-map', { zoomControl:true, attributionControl:true })
+    .setView([52.2297, 21.0122], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(leafletMap);
+
+  JOBS.forEach(job => {
+    const marker = L.marker([job.lat, job.lng], { icon: jobDivIcon(job, job.id === selectedJobId) })
+      .addTo(leafletMap)
+      .on('click', () => showJob(job.id, true));
+    jobMarkers[job.id] = marker;
+  });
 }
 
-function renderPins(){
-  const html = JOBS.map(j => {
-    if(j.id === selectedJobId){
-      return `<button class="pin-selected" data-job="${j.id}" style="top:${j.top};left:${j.left}" type="button">${j.price} zł</button>`;
-    }
-    return `<span class="pin-price" style="top:${j.top};left:${j.left}">${j.price} zł</span>`;
-  }).join('') + `<span class="pin-count" style="top:12%;left:74%">4</span><span class="pin-count" style="top:78%;left:64%">7</span>`;
-  document.getElementById('map-pins').innerHTML = html;
-  document.querySelectorAll('.pin-selected').forEach(el => {
-    el.addEventListener('click', () => showJob(Number(el.dataset.job), true));
+function jobDivIcon(job, isSelected){
+  const cls = isSelected ? 'pin-selected' : 'pin-price';
+  const label = job.price + '\u00A0zł';
+  return L.divIcon({
+    className: 'job-marker-wrap',
+    html: '<div class="' + cls + '">' + label + '</div>',
+    iconSize: null,
+    iconAnchor: isSelected ? [14, 40] : [24, 14]
+  });
+}
+
+function refreshMarkerIcons(){
+  JOBS.forEach(job => {
+    const marker = jobMarkers[job.id];
+    if(marker) marker.setIcon(jobDivIcon(job, job.id === selectedJobId));
   });
 }
 
@@ -1608,8 +1587,11 @@ function renderJobList(){
   `).join('');
   document.querySelectorAll('.job-row').forEach(el => {
     el.addEventListener('click', () => {
-      showJob(Number(el.dataset.job), true);
+      const id = Number(el.dataset.job);
+      showJob(id, true);
       setMapView('map');
+      const job = JOBS.find(j => j.id === id);
+      if(leafletMap && job) leafletMap.setView([job.lat, job.lng], 14, { animate:true });
     });
   });
 }
@@ -1622,7 +1604,7 @@ function showJob(id, reveal){
   document.getElementById('sheet-title').textContent = `${job.price} zł · ${job.title}`;
   document.getElementById('sheet-meta').textContent = `${job.district} · ${job.distance} · ${job.time}`;
   if(reveal) document.getElementById('bottom-sheet').classList.remove('hidden');
-  renderPins();
+  refreshMarkerIcons();
 }
 
 function setMapView(view){
@@ -1633,6 +1615,7 @@ function setMapView(view){
   document.getElementById('map-toggle-icon').innerHTML = view === 'map'
     ? '<path d="M2 3.5h12M2 8h12M2 12.5h8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>'
     : '<path d="M2.5 6.5 8 2l5.5 4.5V14a1 1 0 0 1-1 1H10v-4H6v4H3.5a1 1 0 0 1-1-1V6.5Z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>';
+  if(view === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
 }
 
 document.getElementById('map-toggle').addEventListener('click', () => {
@@ -1652,8 +1635,7 @@ document.querySelectorAll('.radar-nav [data-nav]').forEach(btn => {
   });
 });
 
-renderMapLabels();
-renderPins();
+initLeafletMap();
 renderJobList();
 showJob(selectedJobId, false);
 setMapView('map');
