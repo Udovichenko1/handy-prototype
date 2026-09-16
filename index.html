@@ -1355,7 +1355,7 @@
               <h2 data-i18n="activity_title">Aktywność</h2>
               <p data-i18n="activity_subtitle">Twoje zlecenia i oferty</p>
             </div>
-            <div class="seg-tabs">
+            <div class="seg-tabs" hidden>
               <button class="seg-tab active" data-mode="worker" type="button">
                 <span data-i18n="tab_worker">Szukam pracy</span><span class="count" id="count-worker">4</span>
               </button>
@@ -1752,6 +1752,8 @@ const T = {
     toast_city: 'Zmiana miasta pojawi się wkrótce', toast_nav: 'Ta sekcja pojawi się wkrótce',
     nav_radar: 'Radar', nav_activity: 'Aktywność', nav_profile: 'Profil',
     activity_title: 'Aktywność', activity_subtitle: 'Twoje zlecenia i oferty',
+    activity_subtitle_worker: 'Zadania, na które aplikowałeś', activity_subtitle_client: 'Zlecenia, które opublikowałeś',
+    add_disabled_worker: 'Publikowanie zleceń jest dostępne dla klientów',
     tab_worker: 'Szukam pracy', tab_client: 'Moje zlecenia',
     filter_all: 'Wszystkie', filter_waiting: 'Oczekujące', filter_active: 'Aktywne', filter_done: 'Zakończone',
     status_selected: (name) => `🎉 Zostałeś wybrany! ${name} czeka na Ciebie.`,
@@ -1808,6 +1810,8 @@ const T = {
     toast_city: 'Смена города появится совсем скоро', toast_nav: 'Этот раздел появится совсем скоро',
     nav_radar: 'Радар', nav_activity: 'Активность', nav_profile: 'Профиль',
     activity_title: 'Активность', activity_subtitle: 'Твои заказы и предложения',
+    activity_subtitle_worker: 'Задания, на которые ты откликнулся', activity_subtitle_client: 'Заказы, которые ты опубликовал',
+    add_disabled_worker: 'Публикация заказов доступна только клиентам',
     tab_worker: 'Ищу работу', tab_client: 'Мои заказы',
     filter_all: 'Все', filter_waiting: 'Ожидают', filter_active: 'Активные', filter_done: 'Завершённые',
     status_selected: (name) => `🎉 Тебя выбрали! ${name} ждёт тебя.`,
@@ -1864,6 +1868,8 @@ const T = {
     toast_city: 'Changing city is coming soon', toast_nav: 'This section is coming soon',
     nav_radar: 'Radar', nav_activity: 'Activity', nav_profile: 'Profile',
     activity_title: 'Activity', activity_subtitle: 'Your jobs and postings',
+    activity_subtitle_worker: 'Jobs you applied to', activity_subtitle_client: 'Tasks you posted',
+    add_disabled_worker: 'Posting tasks is available for clients',
     tab_worker: 'Looking for work', tab_client: 'My postings',
     filter_all: 'All', filter_waiting: 'Waiting', filter_active: 'Active', filter_done: 'Completed',
     status_selected: (name) => `🎉 You've been selected! ${name} is expecting you.`,
@@ -1936,6 +1942,10 @@ function applyLang(lang){
   });
   if(screens.success.classList.contains('active')) setSuccessText();
   if(screens.soon.classList.contains('active')) setSoonText();
+  if(screens.radar.classList.contains('active') && typeof renderJobList === 'function'){
+    renderJobList();
+    showJob(selectedJobId, false);
+  }
   if(screens.activity.classList.contains('active')) renderActivityList();
   if(screens.activityDetail.classList.contains('active') && activeDetailId !== null) openActivityDetail(activeDetailId);
   if(screens.profile.classList.contains('active') && typeof renderProfile === 'function') renderProfile();
@@ -1974,10 +1984,18 @@ function goTo(name){
     setSoonText();
   }
   if(name === 'radar' && mapInstance){
+    rebuildMarkers();
+    if(typeof renderJobList === 'function') renderJobList();
+    if(typeof showJob === 'function') showJob(selectedJobId, false);
     setTimeout(() => mapInstance.resize(), 60);
   }
   if(name === 'profile' && typeof renderProfile === 'function'){
     renderProfile();
+  }
+  if(name === 'activity' && typeof renderActivityList === 'function'){
+    activityFilter = 'all';
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+    renderActivityList();
   }
   if(name === 'createCategory' && typeof renderCategoryGrid === 'function'){
     renderCategoryGrid();
@@ -2146,11 +2164,29 @@ const JOBS = [
   { id:7, emoji:'🔧', title:'Drobne naprawy hydrauliczne', district:'Żoliborz', time:'jutro · 16:00–17:00', distance:'1.9 km', price:70, lat:52.2650, lng:20.9800 },
   { id:8, emoji:'🚚', title:'Rozładunek dostawy', district:'Ochota', time:'dziś · 13:00–14:00', distance:'0.4 km', price:35, lat:52.2150, lng:20.9800 }
 ];
+const WORKERS = [
+  { id:1, emoji:'👷', name:'Marek K.', catKey:'cat_moving', rating:4.9, priceHour:45, distance:'1.1 km', lat:52.1950, lng:21.0250 },
+  { id:2, emoji:'🧹', name:'Kasia W.', catKey:'cat_cleaning', rating:4.8, priceHour:35, distance:'0.7 km', lat:52.2320, lng:20.9750 },
+  { id:3, emoji:'🔧', name:'Tomek N.', catKey:'cat_repair', rating:4.7, priceHour:50, distance:'1.8 km', lat:52.1550, lng:21.0350 },
+  { id:4, emoji:'🌿', name:'Anna P.', catKey:'cat_garden', rating:5.0, priceHour:30, distance:'2.2 km', lat:52.2280, lng:21.0100 },
+  { id:5, emoji:'🛋️', name:'Piotr S.', catKey:'cat_furniture', rating:4.6, priceHour:40, distance:'0.9 km', lat:52.2480, lng:20.9250 },
+  { id:6, emoji:'❄️', name:'Ola D.', catKey:'cat_snow', rating:4.9, priceHour:30, distance:'1.4 km', lat:52.2130, lng:21.0650 },
+  { id:7, emoji:'🚚', name:'Michał R.', catKey:'cat_delivery', rating:4.8, priceHour:45, distance:'2.6 km', lat:52.2630, lng:20.9850 },
+  { id:8, emoji:'📦', name:'Ewa J.', catKey:'cat_moving', rating:4.9, priceHour:42, distance:'0.5 km', lat:52.2170, lng:20.9820 }
+];
 let selectedJobId = 1;
 let mapView = 'map';
 let mapInstance = null;
 const jobMarkers = {};
 const MAPTILER_KEY = '026HtZe5IEwurRCXC4DK';
+
+function radarMode(){ return selectedRole === 'client' ? 'workers' : 'jobs'; }
+function radarData(){ return radarMode() === 'workers' ? WORKERS : JOBS; }
+function radarLabel(item){
+  return radarMode() === 'workers' ? (item.priceHour + '\u00A0zł/h') : (item.price + '\u00A0zł');
+}
+
+let markersMode = null;
 
 function initMap(){
   mapInstance = new maplibregl.Map({
@@ -2163,34 +2199,42 @@ function initMap(){
   mapInstance.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-left');
   mapInstance.on('load', () => applyBrandTheme(mapInstance));
 
-  JOBS.forEach(job => {
-    const el = makeMarkerEl(job, job.id === selectedJobId);
-    el.addEventListener('click', () => showJob(job.id, true));
+  rebuildMarkers();
+}
+
+function rebuildMarkers(){
+  if(markersMode === radarMode()) return;
+  markersMode = radarMode();
+  Object.values(jobMarkers).forEach(m => m.remove());
+  Object.keys(jobMarkers).forEach(k => delete jobMarkers[k]);
+  const data = radarData();
+  selectedJobId = data[0].id;
+  data.forEach(item => {
+    const el = makeMarkerEl(item, item.id === selectedJobId);
+    el.addEventListener('click', () => showJob(item.id, true));
     const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-      .setLngLat([job.lng, job.lat])
+      .setLngLat([item.lng, item.lat])
       .addTo(mapInstance);
-    jobMarkers[job.id] = marker;
+    jobMarkers[item.id] = marker;
   });
 }
 
-function makeMarkerEl(job, isSelected){
+function makeMarkerEl(item, isSelected){
   const wrap = document.createElement('div');
   wrap.className = 'job-marker-wrap';
   const cls = isSelected ? 'pin-selected' : 'pin-price';
-  const label = job.price + '\u00A0zł';
-  wrap.innerHTML = '<div class="' + cls + '">' + label + '</div>';
+  wrap.innerHTML = '<div class="' + cls + '">' + radarLabel(item) + '</div>';
   return wrap;
 }
 
 function refreshMarkerIcons(){
-  JOBS.forEach(job => {
-    const marker = jobMarkers[job.id];
+  radarData().forEach(item => {
+    const marker = jobMarkers[item.id];
     if(!marker) return;
     const el = marker.getElement();
-    const isSelected = job.id === selectedJobId;
+    const isSelected = item.id === selectedJobId;
     const cls = isSelected ? 'pin-selected' : 'pin-price';
-    const label = job.price + '\u00A0zł';
-    el.innerHTML = '<div class="' + cls + '">' + label + '</div>';
+    el.innerHTML = '<div class="' + cls + '">' + radarLabel(item) + '</div>';
   });
 }
 
@@ -2241,31 +2285,53 @@ function applyBrandTheme(map){
 }
 
 function renderJobList(){
-  document.getElementById('job-list').innerHTML = JOBS.map(j => `
-    <button class="job-row" type="button" data-job="${j.id}">
-      <span class="chip">${j.emoji}</span>
-      <span class="txt"><strong>${j.title}</strong><span>${j.district} · ${j.distance}</span></span>
-      <span class="price">${j.price} zł</span>
-    </button>
-  `).join('');
+  const mode = radarMode();
+  const data = radarData();
+  const html = data.map(item => {
+    if(mode === 'workers'){
+      const cat = T[currentLang][item.catKey] || '';
+      return `
+        <button class="job-row" type="button" data-job="${item.id}">
+          <span class="chip">${item.emoji}</span>
+          <span class="txt"><strong>${item.name}</strong><span>${cat} · ★${item.rating} · ${item.distance}</span></span>
+          <span class="price">${item.priceHour}\u00A0zł/h</span>
+        </button>
+      `;
+    }
+    return `
+      <button class="job-row" type="button" data-job="${item.id}">
+        <span class="chip">${item.emoji}</span>
+        <span class="txt"><strong>${item.title}</strong><span>${item.district} · ${item.distance}</span></span>
+        <span class="price">${item.price}\u00A0zł</span>
+      </button>
+    `;
+  }).join('');
+  document.getElementById('job-list').innerHTML = html;
   document.querySelectorAll('.job-row').forEach(el => {
     el.addEventListener('click', () => {
       const id = Number(el.dataset.job);
       showJob(id, true);
       setMapView('map');
-      const job = JOBS.find(j => j.id === id);
-      if(mapInstance && job) mapInstance.flyTo({ center:[job.lng, job.lat], zoom:14 });
+      const item = data.find(x => x.id === id);
+      if(mapInstance && item) mapInstance.flyTo({ center:[item.lng, item.lat], zoom:14 });
     });
   });
 }
 
 function showJob(id, reveal){
-  const job = JOBS.find(j => j.id === id);
-  if(!job) return;
+  const mode = radarMode();
+  const item = radarData().find(x => x.id === id);
+  if(!item) return;
   selectedJobId = id;
-  document.getElementById('sheet-chip').textContent = job.emoji;
-  document.getElementById('sheet-title').textContent = `${job.price} zł · ${job.title}`;
-  document.getElementById('sheet-meta').textContent = `${job.district} · ${job.distance} · ${job.time}`;
+  document.getElementById('sheet-chip').textContent = item.emoji;
+  if(mode === 'workers'){
+    const cat = T[currentLang][item.catKey] || '';
+    document.getElementById('sheet-title').textContent = `${item.name} · ${cat}`;
+    document.getElementById('sheet-meta').textContent = `★ ${item.rating} · ${item.distance} · ${item.priceHour}\u00A0zł/h`;
+  } else {
+    document.getElementById('sheet-title').textContent = `${item.price}\u00A0zł · ${item.title}`;
+    document.getElementById('sheet-meta').textContent = `${item.district} · ${item.distance} · ${item.time}`;
+  }
   if(reveal) document.getElementById('bottom-sheet').classList.remove('hidden');
   refreshMarkerIcons();
 }
@@ -2390,8 +2456,12 @@ function activityCardHtml(a){
 }
 
 function renderActivityList(){
+  activityMode = selectedRole === 'client' ? 'client' : 'worker';
   document.getElementById('count-worker').textContent = activityCounts().worker;
   document.getElementById('count-client').textContent = activityCounts().client;
+  document.querySelector('.section-header p').textContent = selectedRole === 'client'
+    ? T[currentLang].activity_subtitle_client
+    : T[currentLang].activity_subtitle_worker;
   let items = ACTIVITIES.filter(a => a.mode === activityMode);
   if(activityFilter !== 'all') items = items.filter(a => a.status === activityFilter);
   const list = document.getElementById('activity-list');
@@ -2619,6 +2689,10 @@ btnPublish.addEventListener('click', function(){
 
 document.querySelectorAll('.radar-nav [data-nav="add"]').forEach(btn => {
   btn.addEventListener('click', () => {
+    if(selectedRole === 'worker'){
+      showToast(T[currentLang].add_disabled_worker);
+      return;
+    }
     createTaskOrigin = currentScreenName() || 'radar';
     selectedCategory = null;
     goTo('createCategory');
