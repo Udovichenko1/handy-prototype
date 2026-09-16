@@ -646,8 +646,9 @@
     overflow:hidden;
     background:#F5F1E8;
   }
-  #leaflet-map{ position:absolute; inset:0; z-index:0; background:#F5F1E8; }
-  .leaflet-container{ font-family:'Plus Jakarta Sans', sans-serif; }
+  #map-canvas{ position:absolute; inset:0; z-index:0; background:#F5F1E8; }
+  .maplibregl-map{ font-family:'Plus Jakarta Sans', sans-serif; }
+  .job-marker-wrap{ cursor:pointer; }
 
   .pin-price{
     background:#211F26;
@@ -856,8 +857,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
 <div class="wrap">
   <div class="masthead">
@@ -1074,7 +1075,7 @@
             </div>
 
             <div class="map-area" id="map-area">
-              <div id="leaflet-map"></div>
+              <div id="map-canvas"></div>
               <div class="job-list" id="job-list"></div>
 
               <div class="bottom-sheet" id="bottom-sheet">
@@ -1376,6 +1377,9 @@ function goTo(name){
     animBoxSoon.goToAndPlay(0, true);
     setSoonText();
   }
+  if(name === 'radar' && mapInstance){
+    setTimeout(() => mapInstance.resize(), 60);
+  }
 }
 
 function showToast(msg){
@@ -1540,40 +1544,90 @@ const JOBS = [
 ];
 let selectedJobId = 1;
 let mapView = 'map';
-let leafletMap = null;
+let mapInstance = null;
 const jobMarkers = {};
+const MAPTILER_KEY = '026HtZe5IEwurRCXC4DK';
 
-function initLeafletMap(){
-  leafletMap = L.map('leaflet-map', { zoomControl:true, attributionControl:true })
-    .setView([52.2297, 21.0122], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-  }).addTo(leafletMap);
+function initMap(){
+  mapInstance = new maplibregl.Map({
+    container: 'map-canvas',
+    style: 'https://api.maptiler.com/maps/basic-v2/style.json?key=' + MAPTILER_KEY,
+    center: [21.0122, 52.2297],
+    zoom: 12,
+    attributionControl: { compact: true }
+  });
+  mapInstance.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-left');
+  mapInstance.on('load', () => applyBrandTheme(mapInstance));
 
   JOBS.forEach(job => {
-    const marker = L.marker([job.lat, job.lng], { icon: jobDivIcon(job, job.id === selectedJobId) })
-      .addTo(leafletMap)
-      .on('click', () => showJob(job.id, true));
+    const el = makeMarkerEl(job, job.id === selectedJobId);
+    el.addEventListener('click', () => showJob(job.id, true));
+    const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+      .setLngLat([job.lng, job.lat])
+      .addTo(mapInstance);
     jobMarkers[job.id] = marker;
   });
 }
 
-function jobDivIcon(job, isSelected){
+function makeMarkerEl(job, isSelected){
+  const wrap = document.createElement('div');
+  wrap.className = 'job-marker-wrap';
   const cls = isSelected ? 'pin-selected' : 'pin-price';
   const label = job.price + '\u00A0zł';
-  return L.divIcon({
-    className: 'job-marker-wrap',
-    html: '<div class="' + cls + '">' + label + '</div>',
-    iconSize: null,
-    iconAnchor: isSelected ? [14, 40] : [24, 14]
-  });
+  wrap.innerHTML = '<div class="' + cls + '">' + label + '</div>';
+  return wrap;
 }
 
 function refreshMarkerIcons(){
   JOBS.forEach(job => {
     const marker = jobMarkers[job.id];
-    if(marker) marker.setIcon(jobDivIcon(job, job.id === selectedJobId));
+    if(!marker) return;
+    const el = marker.getElement();
+    const isSelected = job.id === selectedJobId;
+    const cls = isSelected ? 'pin-selected' : 'pin-price';
+    const label = job.price + '\u00A0zł';
+    el.innerHTML = '<div class="' + cls + '">' + label + '</div>';
+  });
+}
+
+function applyBrandTheme(map){
+  const style = map.getStyle();
+  if(!style || !style.layers) return;
+  style.layers.forEach(layer => {
+    const sl = layer['source-layer'];
+    const id = layer.id;
+    try{
+      if(layer.type === 'background'){
+        map.setPaintProperty(id, 'background-color', '#F5F1E8');
+      } else if(sl === 'water' && layer.type === 'fill'){
+        map.setPaintProperty(id, 'fill-color', '#CFE0E6');
+      } else if(sl === 'waterway' && layer.type === 'line'){
+        map.setPaintProperty(id, 'line-color', '#CFE0E6');
+      } else if((sl === 'landcover' || sl === 'landuse' || sl === 'park') && layer.type === 'fill'){
+        const hay = (id + JSON.stringify(layer.filter || '')).toLowerCase();
+        if(/park|grass|wood|forest|farmland|meadow|cemetery|recreation/.test(hay)){
+          map.setPaintProperty(id, 'fill-color', '#D7DEC3');
+        } else {
+          map.setPaintProperty(id, 'fill-color', '#F5F1E8');
+        }
+      } else if(sl === 'building' && layer.type === 'fill'){
+        map.setPaintProperty(id, 'fill-color', '#EDE7DC');
+        try{ map.setPaintProperty(id, 'fill-outline-color', '#E3DBCB'); }catch(e){}
+      } else if(sl === 'transportation' && layer.type === 'line'){
+        const isMajor = /motorway|trunk|primary/i.test(id);
+        map.setPaintProperty(id, 'line-color', isMajor ? '#FF8A4D' : '#E3DBCB');
+      } else if(sl === 'boundary' && layer.type === 'line'){
+        map.setPaintProperty(id, 'line-color', '#D8CDBB');
+      } else if(layer.type === 'symbol'){
+        try{
+          if(map.getLayoutProperty(id, 'text-field') !== undefined){
+            map.setPaintProperty(id, 'text-color', '#5C574E');
+            map.setPaintProperty(id, 'text-halo-color', '#FBF9F7');
+            map.setPaintProperty(id, 'text-halo-width', 1.2);
+          }
+        }catch(e){}
+      }
+    }catch(e){ /* layer may not support this paint property; skip */ }
   });
 }
 
@@ -1591,7 +1645,7 @@ function renderJobList(){
       showJob(id, true);
       setMapView('map');
       const job = JOBS.find(j => j.id === id);
-      if(leafletMap && job) leafletMap.setView([job.lat, job.lng], 14, { animate:true });
+      if(mapInstance && job) mapInstance.flyTo({ center:[job.lng, job.lat], zoom:14 });
     });
   });
 }
@@ -1615,7 +1669,7 @@ function setMapView(view){
   document.getElementById('map-toggle-icon').innerHTML = view === 'map'
     ? '<path d="M2 3.5h12M2 8h12M2 12.5h8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>'
     : '<path d="M2.5 6.5 8 2l5.5 4.5V14a1 1 0 0 1-1 1H10v-4H6v4H3.5a1 1 0 0 1-1-1V6.5Z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>';
-  if(view === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
+  if(view === 'map' && mapInstance) setTimeout(() => mapInstance.resize(), 50);
 }
 
 document.getElementById('map-toggle').addEventListener('click', () => {
@@ -1635,7 +1689,7 @@ document.querySelectorAll('.radar-nav [data-nav]').forEach(btn => {
   });
 });
 
-initLeafletMap();
+initMap();
 renderJobList();
 showJob(selectedJobId, false);
 setMapView('map');
