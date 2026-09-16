@@ -315,8 +315,8 @@
   .btn-primary.enabled{ background:#FF8A4D; }
   .btn-primary:disabled{ opacity:.45; cursor:not-allowed; }
   .btn-primary:not(:disabled):active{ transform:scale(.98); }
-  .btn-primary #lottie-dots-btn, .btn-primary #lottie-dots-create, .btn-primary #lottie-dots-login{ width:34px; height:26px; display:none; }
-  .btn-primary.loading #lottie-dots-btn, .btn-primary.loading #lottie-dots-create, .btn-primary.loading #lottie-dots-login{ display:block; }
+  .btn-primary #lottie-dots-btn, .btn-primary #lottie-dots-create, .btn-primary #lottie-dots-login, .btn-primary #lottie-dots-publish{ width:34px; height:26px; display:none; }
+  .btn-primary.loading #lottie-dots-btn, .btn-primary.loading #lottie-dots-create, .btn-primary.loading #lottie-dots-login, .btn-primary.loading #lottie-dots-publish{ display:block; }
   .btn-primary.loading .btn-label{ display:none; }
 
   .footnote{ text-align:center; font-size:12px; color:#B8B4BE; margin-top:10px; }
@@ -991,6 +991,55 @@
 
   .app-version{ text-align:center; font-size:11.5px; color:#C7C2BA; margin-top:6px; }
 
+  /* ---------- Create task ---------- */
+  #screen-create-category{ padding:0 24px 24px; }
+  #screen-create-details{ padding:0 24px 24px; overflow-y:auto; }
+  .cat-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:6px;
+  }
+  .cat-tile{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    background:#FBF9F7; border:2px solid transparent; border-radius:20px;
+    padding:20px 10px; cursor:pointer; font-family:inherit;
+    transition:border-color .2s ease, background .2s ease, transform .15s ease;
+  }
+  .cat-tile:active{ transform:scale(.97); }
+  .cat-tile .cat-icon{
+    width:52px; height:52px; border-radius:16px;
+    background:linear-gradient(145deg,#FFE7D6,#FFD3AE);
+    display:flex; align-items:center; justify-content:center;
+    font-size:25px;
+  }
+  .cat-tile span.lbl{ font-size:13px; font-weight:700; color:#211F26; text-align:center; }
+
+  .cat-summary{
+    display:flex; align-items:center; gap:12px;
+    background:#FFF6EF; border:1.5px solid #FFD3AE; border-radius:18px;
+    padding:14px; margin-bottom:18px;
+  }
+  .cat-summary .cat-icon{
+    width:44px; height:44px; min-width:44px; border-radius:14px;
+    background:linear-gradient(145deg,#FFB27A,#FF8A4D);
+    display:flex; align-items:center; justify-content:center; font-size:21px;
+  }
+  .cat-summary strong{ font-size:14.5px; color:#211F26; }
+  .cat-summary button{
+    margin-left:auto; background:none; border:none; color:#FF8A4D;
+    font-family:inherit; font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+
+  .price-hint{ font-size:12px; color:#8A8790; margin-top:6px; }
+  .price-hint b{ color:#211F26; }
+  textarea.ta{
+    width:100%; border:none; background:transparent; outline:none;
+    font-family:inherit; font-size:14px; color:#211F26; resize:none;
+    padding:0; min-height:60px;
+  }
+  textarea.ta::placeholder{ color:#C7C2BA; }
+
   /* ---------- Dev toolbar ---------- */
   .devbar{
     display:flex;
@@ -1483,6 +1532,74 @@
             </nav>
           </section>
 
+          <!-- Create task: category -->
+          <section id="screen-create-category" class="app-screen">
+            <div class="topbar">
+              <button class="back-btn" id="create-cat-back" type="button" aria-label="Wstecz">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 3.5 5.5 9l5.5 5.5" stroke="#211F26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="auth-head">
+              <h2 data-i18n="create_title">Co potrzebujesz zrobić?</h2>
+              <p data-i18n="create_subtitle">Wybierz kategorię zadania</p>
+            </div>
+            <div class="cat-grid" id="cat-grid"></div>
+          </section>
+
+          <!-- Create task: details -->
+          <section id="screen-create-details" class="app-screen">
+            <div class="topbar">
+              <button class="back-btn" data-back="createCategory" type="button" aria-label="Wstecz">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 3.5 5.5 9l5.5 5.5" stroke="#211F26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="auth-head">
+              <h2 data-i18n="create_details_title">Szczegóły zlecenia</h2>
+              <p data-i18n="create_details_subtitle">Podaj informacje, aby wykonawcy mogli odpowiedzieć</p>
+            </div>
+
+            <div class="cat-summary">
+              <span class="cat-icon" id="create-summary-icon">📦</span>
+              <strong id="create-summary-label">—</strong>
+              <button type="button" id="create-summary-change" data-i18n="create_change">Zmień</button>
+            </div>
+
+            <div class="fields">
+              <div class="field">
+                <label for="create-title" data-i18n="create_field_title">Tytuł zadania</label>
+                <input id="create-title" type="text">
+              </div>
+              <div class="field">
+                <label for="create-address" data-i18n="create_field_address">Adres</label>
+                <input id="create-address" type="text" data-i18n-ph="create_ph_address" placeholder="np. ul. Marszałkowska 10, Warszawa">
+              </div>
+              <div class="field">
+                <label for="create-date" data-i18n="create_field_date">Data</label>
+                <input id="create-date" type="date">
+              </div>
+              <div class="field">
+                <label for="create-time" data-i18n="create_field_time">Godzina</label>
+                <input id="create-time" type="text" data-i18n-ph="create_ph_time" placeholder="np. 14:00–18:00">
+              </div>
+              <div class="field">
+                <label for="create-desc" data-i18n="create_field_desc">Opis (opcjonalnie)</label>
+                <textarea id="create-desc" class="ta" rows="3" data-i18n-ph="create_ph_desc" placeholder="Dodaj szczegóły, które pomogą wykonawcy"></textarea>
+              </div>
+              <div class="field">
+                <label for="create-price" data-i18n="create_field_price">Cena (zł)</label>
+                <input id="create-price" type="number" inputmode="numeric" placeholder="0">
+              </div>
+            </div>
+            <p class="price-hint" id="create-price-hint"></p>
+
+            <div class="role-footer">
+              <button class="btn-primary" id="btn-publish" type="button" disabled>
+                <span class="btn-label" data-i18n="create_publish">Opublikuj zlecenie</span>
+                <div id="lottie-dots-publish"></div>
+              </button>
+            </div>
+          </section>
+
           <!-- Coming soon -->
           <section id="screen-soon" class="app-screen">
             <div id="lottie-box-soon"></div>
@@ -1519,6 +1636,7 @@
         <button data-jump="radar">Radar</button>
         <button data-jump="activity">Aktywność</button>
         <button data-jump="profile">Profil</button>
+        <button data-jump="createCategory">+ Zadanie</button>
         <button data-jump="soon">Ekran „wkrótce”</button>
       </div>
     </div>
@@ -1580,6 +1698,7 @@ const animBoxSoon = mkAnim('lottie-box-soon', LOTTIE_BOX, true);
 const animDotsBtn = mkAnim('lottie-dots-btn', LOTTIE_DOTS, true);
 const animDotsCreate = mkAnim('lottie-dots-create', LOTTIE_DOTS, true);
 const animDotsLogin = mkAnim('lottie-dots-login', LOTTIE_DOTS, true);
+const animDotsPublish = mkAnim('lottie-dots-publish', LOTTIE_DOTS, true);
 const animCheck = mkAnim('lottie-check', LOTTIE_CHECK, false, false);
 
 const screens = {
@@ -1593,6 +1712,8 @@ const screens = {
   activity: document.getElementById('screen-activity'),
   activityDetail: document.getElementById('screen-activity-detail'),
   profile: document.getElementById('screen-profile'),
+  createCategory: document.getElementById('screen-create-category'),
+  createDetails: document.getElementById('screen-create-details'),
   soon: document.getElementById('screen-soon')
 };
 let splashTimer = null;
@@ -1650,7 +1771,19 @@ const T = {
     menu_notif: 'Powiadomienia', menu_security: 'Bezpieczeństwo', menu_help: 'Pomoc i wsparcie',
     menu_terms: 'Regulamin i prywatność', menu_logout: 'Wyloguj się',
     toast_role_changed: (r) => `Rola zmieniona na: ${r}`,
-    toast_menu_soon: 'Ta sekcja pojawi się wkrótce'
+    toast_menu_soon: 'Ta sekcja pojawi się wkrótce',
+    cat_moving: 'Przeprowadzka', cat_furniture: 'Montaż mebli', cat_cleaning: 'Sprzątanie',
+    cat_garden: 'Ogród / trawnik', cat_snow: 'Odśnieżanie', cat_repair: 'Drobne naprawy',
+    cat_delivery: 'Transport / dostawa', cat_other: 'Inne',
+    create_title: 'Co potrzebujesz zrobić?', create_subtitle: 'Wybierz kategorię zadania',
+    create_details_title: 'Szczegóły zlecenia', create_details_subtitle: 'Podaj informacje, aby wykonawcy mogli odpowiedzieć',
+    create_change: 'Zmień',
+    create_field_title: 'Tytuł zadania', create_field_address: 'Adres', create_ph_address: 'np. ul. Marszałkowska 10, Warszawa',
+    create_field_date: 'Data', create_field_time: 'Godzina', create_ph_time: 'np. 14:00–18:00',
+    create_field_desc: 'Opis (opcjonalnie)', create_ph_desc: 'Dodaj szczegóły, które pomogą wykonawcy',
+    create_field_price: 'Cena (zł)', create_publish: 'Opublikuj zlecenie',
+    price_hint: (min, max) => `Średnia cena dla tej kategorii: <b>${min}–${max} zł</b>`,
+    toast_published: 'Zlecenie opublikowane! Wykonawcy zaczynają je widzieć.'
   },
   ru: {
     auth_step: 'Шаг 1 из 2', auth_title: 'Присоединяйся к Handy', auth_subtitle: 'Выбери способ регистрации',
@@ -1694,7 +1827,19 @@ const T = {
     menu_notif: 'Уведомления', menu_security: 'Безопасность', menu_help: 'Помощь и поддержка',
     menu_terms: 'Условия и конфиденциальность', menu_logout: 'Выйти',
     toast_role_changed: (r) => `Роль изменена на: ${r}`,
-    toast_menu_soon: 'Этот раздел появится совсем скоро'
+    toast_menu_soon: 'Этот раздел появится совсем скоро',
+    cat_moving: 'Переезд', cat_furniture: 'Сборка мебели', cat_cleaning: 'Уборка',
+    cat_garden: 'Сад / газон', cat_snow: 'Уборка снега', cat_repair: 'Мелкий ремонт',
+    cat_delivery: 'Перевозка / доставка', cat_other: 'Другое',
+    create_title: 'Что нужно сделать?', create_subtitle: 'Выбери категорию задания',
+    create_details_title: 'Детали заказа', create_details_subtitle: 'Укажи информацию, чтобы исполнители могли откликнуться',
+    create_change: 'Изменить',
+    create_field_title: 'Название задания', create_field_address: 'Адрес', create_ph_address: 'напр. ул. Маршалковская 10, Варшава',
+    create_field_date: 'Дата', create_field_time: 'Время', create_ph_time: 'напр. 14:00–18:00',
+    create_field_desc: 'Описание (необязательно)', create_ph_desc: 'Добавь детали, которые помогут исполнителю',
+    create_field_price: 'Цена (zł)', create_publish: 'Опубликовать заказ',
+    price_hint: (min, max) => `Средняя цена для этой категории: <b>${min}–${max} zł</b>`,
+    toast_published: 'Заказ опубликован! Исполнители уже его видят.'
   },
   en: {
     auth_step: 'Step 1 of 2', auth_title: 'Join Handy', auth_subtitle: "Choose how you'd like to sign up",
@@ -1738,7 +1883,19 @@ const T = {
     menu_notif: 'Notifications', menu_security: 'Security', menu_help: 'Help & support',
     menu_terms: 'Terms & privacy', menu_logout: 'Log out',
     toast_role_changed: (r) => `Role switched to: ${r}`,
-    toast_menu_soon: 'This section is coming soon'
+    toast_menu_soon: 'This section is coming soon',
+    cat_moving: 'Moving', cat_furniture: 'Furniture assembly', cat_cleaning: 'Cleaning',
+    cat_garden: 'Garden / lawn', cat_snow: 'Snow removal', cat_repair: 'Small repairs',
+    cat_delivery: 'Transport / delivery', cat_other: 'Other',
+    create_title: 'What do you need done?', create_subtitle: 'Choose a task category',
+    create_details_title: 'Task details', create_details_subtitle: 'Add details so contractors can respond',
+    create_change: 'Change',
+    create_field_title: 'Task title', create_field_address: 'Address', create_ph_address: 'e.g. ul. Marszałkowska 10, Warsaw',
+    create_field_date: 'Date', create_field_time: 'Time', create_ph_time: 'e.g. 2:00–6:00 PM',
+    create_field_desc: 'Description (optional)', create_ph_desc: 'Add details that will help the contractor',
+    create_field_price: 'Price (zł)', create_publish: 'Publish task',
+    price_hint: (min, max) => `Average price for this category: <b>${min}–${max} zł</b>`,
+    toast_published: 'Task published! Contractors can now see it.'
   }
 };
 
@@ -1782,6 +1939,11 @@ function applyLang(lang){
   if(screens.activity.classList.contains('active')) renderActivityList();
   if(screens.activityDetail.classList.contains('active') && activeDetailId !== null) openActivityDetail(activeDetailId);
   if(screens.profile.classList.contains('active') && typeof renderProfile === 'function') renderProfile();
+  if(typeof renderCategoryGrid === 'function' && screens.createCategory.classList.contains('active')) renderCategoryGrid();
+  if(typeof selectedCategory !== 'undefined' && selectedCategory && screens.createDetails.classList.contains('active')){
+    document.getElementById('create-summary-label').textContent = T[lang][selectedCategory.key];
+    document.getElementById('create-price-hint').innerHTML = T[lang].price_hint(selectedCategory.min, selectedCategory.max);
+  }
   syncNavRadarLabel();
 }
 
@@ -1816,6 +1978,9 @@ function goTo(name){
   }
   if(name === 'profile' && typeof renderProfile === 'function'){
     renderProfile();
+  }
+  if(name === 'createCategory' && typeof renderCategoryGrid === 'function'){
+    renderCategoryGrid();
   }
 }
 
@@ -2150,6 +2315,7 @@ document.querySelectorAll('.radar-nav [data-nav]').forEach(btn => {
       if(cur !== 'profile') goTo('profile');
       return;
     }
+    if(nav === 'add') return;
     showToast(T[currentLang].toast_nav);
   });
 });
@@ -2355,6 +2521,106 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 });
 
 renderProfile();
+
+// ---------- Create task ----------
+const CATEGORIES = [
+  { id:'moving', emoji:'📦', key:'cat_moving', min:90, max:150 },
+  { id:'furniture', emoji:'🛋️', key:'cat_furniture', min:40, max:80 },
+  { id:'cleaning', emoji:'🧹', key:'cat_cleaning', min:60, max:100 },
+  { id:'garden', emoji:'🌿', key:'cat_garden', min:35, max:60 },
+  { id:'snow', emoji:'❄️', key:'cat_snow', min:30, max:55 },
+  { id:'repair', emoji:'🔧', key:'cat_repair', min:50, max:90 },
+  { id:'delivery', emoji:'🚚', key:'cat_delivery', min:30, max:70 },
+  { id:'other', emoji:'✨', key:'cat_other', min:40, max:100 }
+];
+let createTaskOrigin = 'radar';
+let selectedCategory = null;
+
+function renderCategoryGrid(){
+  document.getElementById('cat-grid').innerHTML = CATEGORIES.map(c => `
+    <button class="cat-tile" data-cat="${c.id}" type="button">
+      <span class="cat-icon">${c.emoji}</span>
+      <span class="lbl">${T[currentLang][c.key]}</span>
+    </button>
+  `).join('');
+  document.querySelectorAll('.cat-tile').forEach(tile => {
+    tile.addEventListener('click', () => selectCategory(tile.dataset.cat));
+  });
+}
+
+function selectCategory(id){
+  const cat = CATEGORIES.find(c => c.id === id);
+  if(!cat) return;
+  selectedCategory = cat;
+  document.getElementById('create-summary-icon').textContent = cat.emoji;
+  document.getElementById('create-summary-label').textContent = T[currentLang][cat.key];
+  document.getElementById('create-title').value = T[currentLang][cat.key];
+  document.getElementById('create-price-hint').innerHTML = T[currentLang].price_hint(cat.min, cat.max);
+  validateCreateForm();
+  goTo('createDetails');
+}
+
+document.getElementById('create-summary-change').addEventListener('click', () => goTo('createCategory'));
+document.getElementById('create-cat-back').addEventListener('click', () => goTo(createTaskOrigin));
+
+const createAddressInput = document.getElementById('create-address');
+const createDateInput = document.getElementById('create-date');
+const createTimeInput = document.getElementById('create-time');
+const createPriceInput = document.getElementById('create-price');
+const btnPublish = document.getElementById('btn-publish');
+function validateCreateForm(){
+  const ok = !!selectedCategory &&
+    createAddressInput.value.trim() !== '' &&
+    createDateInput.value !== '' &&
+    createTimeInput.value.trim() !== '' &&
+    createPriceInput.value !== '' && Number(createPriceInput.value) > 0;
+  btnPublish.disabled = !ok;
+  btnPublish.classList.toggle('enabled', ok);
+}
+[createAddressInput, createDateInput, createTimeInput, createPriceInput].forEach(inp => {
+  inp.addEventListener('input', validateCreateForm);
+});
+
+btnPublish.addEventListener('click', function(){
+  if(this.disabled) return;
+  pressWithLoader(this, animDotsPublish, () => {
+    const newId = Math.max(0, ...ACTIVITIES.map(a => a.id)) + 1;
+    ACTIVITIES.unshift({
+      id:newId, mode:'client', status:'waiting',
+      emoji:selectedCategory.emoji,
+      title:document.getElementById('create-title').value || T[currentLang][selectedCategory.key],
+      price:Number(createPriceInput.value),
+      address:createAddressInput.value,
+      date:createDateInput.value,
+      time:createTimeInput.value,
+      applicants:0
+    });
+    showToast(T[currentLang].toast_published);
+    activityMode = 'client';
+    activityFilter = 'all';
+    document.querySelectorAll('.seg-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === 'client'));
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+    renderActivityList();
+    // reset form for next time
+    document.getElementById('create-address').value = '';
+    document.getElementById('create-date').value = '';
+    document.getElementById('create-time').value = '';
+    document.getElementById('create-desc').value = '';
+    document.getElementById('create-price').value = '';
+    selectedCategory = null;
+    goTo('activity');
+  });
+});
+
+document.querySelectorAll('.radar-nav [data-nav="add"]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    createTaskOrigin = currentScreenName() || 'radar';
+    selectedCategory = null;
+    goTo('createCategory');
+  });
+});
+
+renderCategoryGrid();
 
 document.querySelectorAll('.devbar [data-jump]').forEach(btn => {
   btn.addEventListener('click', () => goTo(btn.dataset.jump));
