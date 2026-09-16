@@ -1093,6 +1093,25 @@
   .sg-body-sample{ font-size:13.5px; color:var(--page-text); line-height:1.5; }
   .sg-tokens{ font-size:12.5px; color:var(--muted); line-height:1.9; }
   .sg-tokens b{ color:var(--page-text); }
+
+  /* ---------- Real app mode: strip the showcase chrome on phones / installed PWA ---------- */
+  @media (max-width:640px), (display-mode:standalone){
+    .masthead, .devbar, .styleguide{ display:none !important; }
+    .wrap{ padding:0; gap:0; min-height:100dvh; }
+    .stage{ max-width:none; gap:0; }
+    .phone-col{ gap:0; width:100%; }
+    .phone{
+      width:100vw;
+      height:100dvh;
+      aspect-ratio:auto;
+      max-width:none;
+      border-radius:0;
+      padding:0;
+      background:none;
+      box-shadow:none;
+    }
+    .screen{ border-radius:0; }
+  }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
