@@ -1118,6 +1118,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
 <div class="wrap">
   <div class="masthead">
@@ -1750,6 +1751,12 @@ let selectedRole = null;
 let userEmail = null;
 let currentLang = 'pl';
 
+const SUPABASE_URL = 'https://jzrplrluqigouplegeoi.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_LOXhdNSQMXtI14BOq9qo3A_wPqbgF7K';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+let currentProfile = null;
+
 const ROLE_LABEL = {
   pl: { client: 'Klient', worker: 'Wykonawca' },
   ru: { client: 'Заказчик', worker: 'Исполнитель' },
@@ -1813,7 +1820,11 @@ const T = {
     create_field_desc: 'Opis (opcjonalnie)', create_ph_desc: 'Dodaj szczegóły, które pomogą wykonawcy',
     create_field_price: 'Cena (zł)', create_publish: 'Opublikuj zlecenie',
     price_hint: (min, max) => `Średnia cena dla tej kategorii: <b>${min}–${max} zł</b>`,
-    toast_published: 'Zlecenie opublikowane! Wykonawcy zaczynają je widzieć.'
+    toast_published: 'Zlecenie opublikowane! Wykonawcy zaczynają je widzieć.',
+    toast_signup_error: 'Nie udało się utworzyć konta: ',
+    toast_login_error: 'Nie udało się zalogować: ',
+    toast_session_error: 'Błąd sesji, spróbuj ponownie.',
+    toast_confirm_email: 'Wysłaliśmy e-mail z potwierdzeniem. Kliknij link, aby dokończyć rejestrację.'
   },
   ru: {
     auth_step: 'Шаг 1 из 2', auth_title: 'Присоединяйся к Handy', auth_subtitle: 'Выбери способ регистрации',
@@ -1871,7 +1882,11 @@ const T = {
     create_field_desc: 'Описание (необязательно)', create_ph_desc: 'Добавь детали, которые помогут исполнителю',
     create_field_price: 'Цена (zł)', create_publish: 'Опубликовать заказ',
     price_hint: (min, max) => `Средняя цена для этой категории: <b>${min}–${max} zł</b>`,
-    toast_published: 'Заказ опубликован! Исполнители уже его видят.'
+    toast_published: 'Заказ опубликован! Исполнители уже его видят.',
+    toast_signup_error: 'Не удалось создать аккаунт: ',
+    toast_login_error: 'Не удалось войти: ',
+    toast_session_error: 'Ошибка сессии, попробуй ещё раз.',
+    toast_confirm_email: 'Мы отправили письмо с подтверждением. Перейди по ссылке в письме, чтобы завершить регистрацию.'
   },
   en: {
     auth_step: 'Step 1 of 2', auth_title: 'Join Handy', auth_subtitle: "Choose how you'd like to sign up",
@@ -1929,7 +1944,11 @@ const T = {
     create_field_desc: 'Description (optional)', create_ph_desc: 'Add details that will help the contractor',
     create_field_price: 'Price (zł)', create_publish: 'Publish task',
     price_hint: (min, max) => `Average price for this category: <b>${min}–${max} zł</b>`,
-    toast_published: 'Task published! Contractors can now see it.'
+    toast_published: 'Task published! Contractors can now see it.',
+    toast_signup_error: 'Could not create account: ',
+    toast_login_error: 'Could not sign in: ',
+    toast_session_error: 'Session error, please try again.',
+    toast_confirm_email: 'We sent a confirmation email. Click the link in it to finish signing up.'
   }
 };
 
@@ -2012,9 +2031,7 @@ function goTo(name){
     setSoonText();
   }
   if(name === 'radar' && mapInstance){
-    rebuildMarkers();
-    if(typeof renderJobList === 'function') renderJobList();
-    if(typeof showJob === 'function') showJob(selectedJobId, false);
+    refreshRadarData();
     setTimeout(() => mapInstance.resize(), 60);
   }
   if(name === 'profile' && typeof renderProfile === 'function'){
@@ -2064,6 +2081,17 @@ function pressWithLoader(btn, loaderAnim, next){
   }, 650);
 }
 
+async function pressWithLoaderAsync(btn, loaderAnim, asyncNext){
+  if(btn.disabled) return;
+  btn.classList.add('loading');
+  if(loaderAnim) loaderAnim.goToAndPlay(0, true);
+  try{
+    await asyncNext();
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
 document.querySelectorAll('.role-card').forEach(card => {
   card.addEventListener('click', () => {
     document.querySelectorAll('.role-card').forEach(c => {
@@ -2080,7 +2108,33 @@ document.querySelectorAll('.role-card').forEach(card => {
 });
 
 document.getElementById('btn-continue').addEventListener('click', function(){
-  pressWithLoader(this, animDotsBtn, () => goTo('success'));
+  const btn = this;
+  pressWithLoaderAsync(btn, animDotsBtn, async () => {
+    if(!currentUser){
+      showToast(T[currentLang].toast_session_error);
+      return;
+    }
+    const profileRow = {
+      id: currentUser.id,
+      role: selectedRole,
+      name: deriveDisplayName(userEmail) || null,
+      email: userEmail
+    };
+    if(selectedRole === 'worker'){
+      profileRow.category = 'other';
+      profileRow.price_hour = 40;
+      profileRow.rating = 5.0;
+      profileRow.lat = 52.2297 + (Math.random() - 0.5) * 0.08;
+      profileRow.lng = 21.0122 + (Math.random() - 0.5) * 0.12;
+    }
+    const { data, error } = await sb.from('profiles').upsert(profileRow).select().single();
+    if(error){
+      showToast(T[currentLang].toast_session_error);
+      return;
+    }
+    currentProfile = data;
+    goTo('success');
+  });
 });
 
 document.querySelectorAll('[data-back]').forEach(btn => {
@@ -2145,8 +2199,28 @@ function validateLogin(){
 }
 [loginEmailInput, loginPassInput].forEach(inp => inp.addEventListener('input', validateLogin));
 btnLoginSubmit.addEventListener('click', function(){
-  userEmail = loginEmailInput.value;
-  pressWithLoader(this, animDotsLogin, () => goTo('soon'));
+  const btn = this;
+  pressWithLoaderAsync(btn, animDotsLogin, async () => {
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: loginEmailInput.value,
+      password: loginPassInput.value
+    });
+    if(error){
+      showToast(T[currentLang].toast_login_error + error.message);
+      return;
+    }
+    userEmail = loginEmailInput.value;
+    currentUser = data.user;
+    const { data: profile, error: profileError } = await sb.from('profiles').select().eq('id', currentUser.id).maybeSingle();
+    if(profileError || !profile){
+      selectedRole = null;
+      goTo('role');
+      return;
+    }
+    currentProfile = profile;
+    selectedRole = profile.role;
+    goTo('radar');
+  });
 });
 
 // Terms checkbox
@@ -2171,8 +2245,29 @@ function validateSignup(){
 [dobInput, emailInput, passInput].forEach(inp => inp.addEventListener('input', validateSignup));
 
 btnCreate.addEventListener('click', function(){
-  userEmail = emailInput.value;
-  pressWithLoader(this, animDotsCreate, () => goTo('role'));
+  const btn = this;
+  pressWithLoaderAsync(btn, animDotsCreate, async () => {
+    const { data, error } = await sb.auth.signUp({
+      email: emailInput.value,
+      password: passInput.value,
+      options: {
+        data: { dob: dobInput.value },
+        emailRedirectTo: window.location.origin + window.location.pathname
+      }
+    });
+    if(error){
+      showToast(T[currentLang].toast_signup_error + error.message);
+      return;
+    }
+    userEmail = emailInput.value;
+    if(data.session){
+      currentUser = data.user;
+      goTo('role');
+    } else {
+      showToast(T[currentLang].toast_confirm_email);
+      goTo('auth');
+    }
+  });
 });
 
 document.getElementById('btn-success-next').addEventListener('click', () => goTo('radar'));
@@ -2182,36 +2277,90 @@ document.getElementById('btn-back').addEventListener('click', () => goTo('role')
 screens.splash.addEventListener('click', () => goTo('auth'));
 
 // ---------- Radar (map) ----------
-const JOBS = [
-  { id:1, emoji:'📦', title:'Pomoc przy przeprowadzce', district:'Mokotów', time:'sob 21.09 · 14:00–18:00', distance:'1.2 km', price:120, lat:52.1900, lng:21.0300 },
-  { id:2, emoji:'🛋️', title:'Montaż szafy IKEA', district:'Wola', time:'dziś · 18:00–19:30', distance:'0.8 km', price:60, lat:52.2350, lng:20.9700 },
-  { id:3, emoji:'🌿', title:'Koszenie trawnika', district:'Ursynów', time:'niedz. 22.09 · 10:00–12:00', distance:'2.1 km', price:45, lat:52.1500, lng:21.0400 },
-  { id:4, emoji:'🧹', title:'Sprzątanie mieszkania', district:'Śródmieście', time:'jutro · 09:00–11:00', distance:'1.5 km', price:80, lat:52.2297, lng:21.0122 },
-  { id:5, emoji:'❄️', title:'Odśnieżanie podjazdu', district:'Bemowo', time:'dziś · 07:00–08:00', distance:'0.6 km', price:50, lat:52.2500, lng:20.9200 },
-  { id:6, emoji:'📮', title:'Przenoszenie pudeł', district:'Praga Płd.', time:'sob 21.09 · 11:00–13:00', distance:'3.0 km', price:40, lat:52.2100, lng:21.0700 },
-  { id:7, emoji:'🔧', title:'Drobne naprawy hydrauliczne', district:'Żoliborz', time:'jutro · 16:00–17:00', distance:'1.9 km', price:70, lat:52.2650, lng:20.9800 },
-  { id:8, emoji:'🚚', title:'Rozładunek dostawy', district:'Ochota', time:'dziś · 13:00–14:00', distance:'0.4 km', price:35, lat:52.2150, lng:20.9800 }
+// Demo seed data — shown only as a fallback while the real database has no rows yet
+const DEMO_JOBS = [
+  { id:'demo-1', emoji:'📦', title:'Pomoc przy przeprowadzce', district:'Mokotów', time:'sob 21.09 · 14:00–18:00', distance:'1.2 km', price:120, lat:52.1900, lng:21.0300 },
+  { id:'demo-2', emoji:'🛋️', title:'Montaż szafy IKEA', district:'Wola', time:'dziś · 18:00–19:30', distance:'0.8 km', price:60, lat:52.2350, lng:20.9700 },
+  { id:'demo-3', emoji:'🌿', title:'Koszenie trawnika', district:'Ursynów', time:'niedz. 22.09 · 10:00–12:00', distance:'2.1 km', price:45, lat:52.1500, lng:21.0400 },
+  { id:'demo-4', emoji:'🧹', title:'Sprzątanie mieszkania', district:'Śródmieście', time:'jutro · 09:00–11:00', distance:'1.5 km', price:80, lat:52.2297, lng:21.0122 },
+  { id:'demo-5', emoji:'❄️', title:'Odśnieżanie podjazdu', district:'Bemowo', time:'dziś · 07:00–08:00', distance:'0.6 km', price:50, lat:52.2500, lng:20.9200 },
+  { id:'demo-6', emoji:'📮', title:'Przenoszenie pudeł', district:'Praga Płd.', time:'sob 21.09 · 11:00–13:00', distance:'3.0 km', price:40, lat:52.2100, lng:21.0700 },
+  { id:'demo-7', emoji:'🔧', title:'Drobne naprawy hydrauliczne', district:'Żoliborz', time:'jutro · 16:00–17:00', distance:'1.9 km', price:70, lat:52.2650, lng:20.9800 },
+  { id:'demo-8', emoji:'🚚', title:'Rozładunek dostawy', district:'Ochota', time:'dziś · 13:00–14:00', distance:'0.4 km', price:35, lat:52.2150, lng:20.9800 }
 ];
-const WORKERS = [
-  { id:1, emoji:'👷', name:'Marek K.', catKey:'cat_moving', rating:4.9, priceHour:45, distance:'1.1 km', lat:52.1950, lng:21.0250 },
-  { id:2, emoji:'🧹', name:'Kasia W.', catKey:'cat_cleaning', rating:4.8, priceHour:35, distance:'0.7 km', lat:52.2320, lng:20.9750 },
-  { id:3, emoji:'🔧', name:'Tomek N.', catKey:'cat_repair', rating:4.7, priceHour:50, distance:'1.8 km', lat:52.1550, lng:21.0350 },
-  { id:4, emoji:'🌿', name:'Anna P.', catKey:'cat_garden', rating:5.0, priceHour:30, distance:'2.2 km', lat:52.2280, lng:21.0100 },
-  { id:5, emoji:'🛋️', name:'Piotr S.', catKey:'cat_furniture', rating:4.6, priceHour:40, distance:'0.9 km', lat:52.2480, lng:20.9250 },
-  { id:6, emoji:'❄️', name:'Ola D.', catKey:'cat_snow', rating:4.9, priceHour:30, distance:'1.4 km', lat:52.2130, lng:21.0650 },
-  { id:7, emoji:'🚚', name:'Michał R.', catKey:'cat_delivery', rating:4.8, priceHour:45, distance:'2.6 km', lat:52.2630, lng:20.9850 },
-  { id:8, emoji:'📦', name:'Ewa J.', catKey:'cat_moving', rating:4.9, priceHour:42, distance:'0.5 km', lat:52.2170, lng:20.9820 }
+const DEMO_WORKERS = [
+  { id:'demo-1', emoji:'👷', name:'Marek K.', catKey:'cat_moving', rating:4.9, priceHour:45, distance:'1.1 km', lat:52.1950, lng:21.0250 },
+  { id:'demo-2', emoji:'🧹', name:'Kasia W.', catKey:'cat_cleaning', rating:4.8, priceHour:35, distance:'0.7 km', lat:52.2320, lng:20.9750 },
+  { id:'demo-3', emoji:'🔧', name:'Tomek N.', catKey:'cat_repair', rating:4.7, priceHour:50, distance:'1.8 km', lat:52.1550, lng:21.0350 },
+  { id:'demo-4', emoji:'🌿', name:'Anna P.', catKey:'cat_garden', rating:5.0, priceHour:30, distance:'2.2 km', lat:52.2280, lng:21.0100 },
+  { id:'demo-5', emoji:'🛋️', name:'Piotr S.', catKey:'cat_furniture', rating:4.6, priceHour:40, distance:'0.9 km', lat:52.2480, lng:20.9250 },
+  { id:'demo-6', emoji:'❄️', name:'Ola D.', catKey:'cat_snow', rating:4.9, priceHour:30, distance:'1.4 km', lat:52.2130, lng:21.0650 },
+  { id:'demo-7', emoji:'🚚', name:'Michał R.', catKey:'cat_delivery', rating:4.8, priceHour:45, distance:'2.6 km', lat:52.2630, lng:20.9850 },
+  { id:'demo-8', emoji:'📦', name:'Ewa J.', catKey:'cat_moving', rating:4.9, priceHour:42, distance:'0.5 km', lat:52.2170, lng:20.9820 }
 ];
-let selectedJobId = 1;
+let liveJobs = DEMO_JOBS;
+let liveWorkers = DEMO_WORKERS;
+let selectedJobId = 'demo-1';
 let mapView = 'map';
 let mapInstance = null;
 const jobMarkers = {};
 const MAPTILER_KEY = '026HtZe5IEwurRCXC4DK';
 
 function radarMode(){ return selectedRole === 'client' ? 'workers' : 'jobs'; }
-function radarData(){ return radarMode() === 'workers' ? WORKERS : JOBS; }
+function radarData(){ return radarMode() === 'workers' ? liveWorkers : liveJobs; }
 function radarLabel(item){
   return radarMode() === 'workers' ? (item.priceHour + '\u00A0zł/h') : (item.price + '\u00A0zł');
+}
+
+function categoryEmoji(catId){
+  const cat = (typeof CATEGORIES !== 'undefined') ? CATEGORIES.find(c => c.id === catId) : null;
+  return cat ? cat.emoji : '📦';
+}
+
+async function refreshRadarData(){
+  const mode = radarMode();
+  if(mode === 'jobs'){
+    const { data, error } = await sb.from('tasks').select().eq('status', 'open').order('created_at', { ascending:false });
+    if(!error && data && data.length){
+      liveJobs = data.map(row => ({
+        id: row.id,
+        emoji: categoryEmoji(row.category),
+        title: row.title,
+        district: row.district || row.address || '',
+        time: [row.scheduled_date, row.scheduled_time].filter(Boolean).join(' · '),
+        distance: '',
+        price: row.price,
+        lat: row.lat != null ? row.lat : 52.2297,
+        lng: row.lng != null ? row.lng : 21.0122
+      }));
+    } else {
+      liveJobs = DEMO_JOBS;
+    }
+  } else {
+    const { data, error } = await sb.from('profiles').select().eq('role', 'worker');
+    if(!error && data && data.length){
+      liveWorkers = data.map(row => {
+        const cat = (typeof CATEGORIES !== 'undefined') ? CATEGORIES.find(c => c.id === row.category) : null;
+        return {
+          id: row.id,
+          emoji: categoryEmoji(row.category),
+          name: row.name || row.email || '—',
+          catKey: cat ? cat.key : 'cat_other',
+          rating: row.rating || 5.0,
+          priceHour: row.price_hour || 0,
+          distance: '',
+          lat: row.lat != null ? row.lat : 52.2297,
+          lng: row.lng != null ? row.lng : 21.0122
+        };
+      });
+    } else {
+      liveWorkers = DEMO_WORKERS;
+    }
+  }
+  markersMode = null;
+  rebuildMarkers();
+  if(typeof renderJobList === 'function') renderJobList();
+  if(typeof showJob === 'function') showJob(selectedJobId, false);
 }
 
 let markersMode = null;
@@ -2227,7 +2376,7 @@ function initMap(){
   mapInstance.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'top-left');
   mapInstance.on('load', () => applyBrandTheme(mapInstance));
 
-  rebuildMarkers();
+  refreshRadarData();
 }
 
 function rebuildMarkers(){
@@ -2617,9 +2766,12 @@ document.querySelectorAll('.menu-row[data-menu]').forEach(btn => {
   btn.addEventListener('click', () => showToast(T[currentLang].toast_menu_soon));
 });
 
-document.getElementById('btn-logout').addEventListener('click', () => {
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await sb.auth.signOut();
   selectedRole = null;
   userEmail = null;
+  currentUser = null;
+  currentProfile = null;
   goTo('auth');
 });
 
@@ -2686,16 +2838,36 @@ function validateCreateForm(){
 
 btnPublish.addEventListener('click', function(){
   if(this.disabled) return;
-  pressWithLoader(this, animDotsPublish, () => {
+  const btn = this;
+  pressWithLoaderAsync(btn, animDotsPublish, async () => {
+    const title = document.getElementById('create-title').value || T[currentLang][selectedCategory.key];
+    const price = Number(createPriceInput.value);
+    const address = createAddressInput.value;
+    const date = createDateInput.value;
+    const time = createTimeInput.value;
+    const desc = document.getElementById('create-desc').value;
+
+    if(currentUser){
+      const lat = 52.2297 + (Math.random() - 0.5) * 0.08;
+      const lng = 21.0122 + (Math.random() - 0.5) * 0.12;
+      const { error } = await sb.from('tasks').insert({
+        client_id: currentUser.id,
+        title, category: selectedCategory.id,
+        district: address, address,
+        lat, lng,
+        price,
+        scheduled_date: date, scheduled_time: time,
+        description: desc,
+        status: 'open'
+      });
+      if(error) showToast(T[currentLang].toast_session_error);
+    }
+
     const newId = Math.max(0, ...ACTIVITIES.map(a => a.id)) + 1;
     ACTIVITIES.unshift({
       id:newId, mode:'client', status:'waiting',
       emoji:selectedCategory.emoji,
-      title:document.getElementById('create-title').value || T[currentLang][selectedCategory.key],
-      price:Number(createPriceInput.value),
-      address:createAddressInput.value,
-      date:createDateInput.value,
-      time:createTimeInput.value,
+      title, price, address, date, time,
       applicants:0
     });
     showToast(T[currentLang].toast_published);
@@ -2733,6 +2905,25 @@ document.querySelectorAll('.devbar [data-jump]').forEach(btn => {
   btn.addEventListener('click', () => goTo(btn.dataset.jump));
 });
 
+async function restoreSession(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){
+    goTo('splash');
+    return;
+  }
+  currentUser = session.user;
+  userEmail = currentUser.email;
+  const { data: profile } = await sb.from('profiles').select().eq('id', currentUser.id).maybeSingle();
+  if(!profile){
+    goTo('role');
+    return;
+  }
+  currentProfile = profile;
+  selectedRole = profile.role;
+  userEmail = profile.email || currentUser.email;
+  goTo('radar');
+}
+
 applyLang('pl');
-goTo('splash');
+restoreSession();
 </script>
