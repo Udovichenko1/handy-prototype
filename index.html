@@ -1824,7 +1824,8 @@ const T = {
     toast_signup_error: 'Nie udało się utworzyć konta: ',
     toast_login_error: 'Nie udało się zalogować: ',
     toast_session_error: 'Błąd sesji, spróbuj ponownie.',
-    toast_confirm_email: 'Wysłaliśmy e-mail z potwierdzeniem. Kliknij link, aby dokończyć rejestrację.'
+    toast_confirm_email: 'Wysłaliśmy e-mail z potwierdzeniem. Kliknij link, aby dokończyć rejestrację.',
+    toast_method_soon: 'Ta metoda logowania jest jeszcze niedostępna. Użyj adresu e-mail.'
   },
   ru: {
     auth_step: 'Шаг 1 из 2', auth_title: 'Присоединяйся к Handy', auth_subtitle: 'Выбери способ регистрации',
@@ -1886,7 +1887,8 @@ const T = {
     toast_signup_error: 'Не удалось создать аккаунт: ',
     toast_login_error: 'Не удалось войти: ',
     toast_session_error: 'Ошибка сессии, попробуй ещё раз.',
-    toast_confirm_email: 'Мы отправили письмо с подтверждением. Перейди по ссылке в письме, чтобы завершить регистрацию.'
+    toast_confirm_email: 'Мы отправили письмо с подтверждением. Перейди по ссылке в письме, чтобы завершить регистрацию.',
+    toast_method_soon: 'Этот способ входа пока недоступен. Используй email.'
   },
   en: {
     auth_step: 'Step 1 of 2', auth_title: 'Join Handy', auth_subtitle: "Choose how you'd like to sign up",
@@ -1948,7 +1950,8 @@ const T = {
     toast_signup_error: 'Could not create account: ',
     toast_login_error: 'Could not sign in: ',
     toast_session_error: 'Session error, please try again.',
-    toast_confirm_email: 'We sent a confirmation email. Click the link in it to finish signing up.'
+    toast_confirm_email: 'We sent a confirmation email. Click the link in it to finish signing up.',
+    toast_method_soon: 'This sign-in method isn’t available yet. Please use email.'
   }
 };
 
@@ -2142,13 +2145,16 @@ document.querySelectorAll('[data-back]').forEach(btn => {
 });
 
 document.querySelectorAll('.method-btn').forEach(btn => {
-  btn.addEventListener('click', function(){
+  btn.addEventListener('click', async function(){
     const method = this.dataset.method;
     if(method === 'email'){
       goTo('signup');
       return;
     }
-    pressWithLoader(this, null, () => goTo('role'));
+    if(method === 'apple' || method === 'google'){
+      showToast(T[currentLang].toast_method_soon);
+      return;
+    }
   });
 });
 
