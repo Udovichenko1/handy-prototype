@@ -975,13 +975,27 @@
   #screen-profile{ padding:0; }
   .profile-scroll{ flex:1; min-height:0; overflow-y:auto; padding:64px 20px 24px; }
   .profile-head{ display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+  .avatar-wrap{ position:relative; flex-shrink:0; }
   .avatar{
-    width:64px; height:64px; min-width:64px;
-    border-radius:20px;
+    width:72px; height:72px; min-width:72px;
+    border-radius:50%;
     background:linear-gradient(145deg,#FFB27A,#FF8A4D);
+    background-size:cover;
+    background-position:center;
     display:flex; align-items:center; justify-content:center;
     color:#fff; font-family:'Fredoka',sans-serif; font-size:26px; font-weight:600;
+    overflow:hidden;
   }
+  .avatar-edit-btn{
+    position:absolute; bottom:-2px; right:-2px;
+    width:26px; height:26px;
+    border-radius:50%;
+    background:#FF8A4D;
+    border:2.5px solid #fff;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .avatar-edit-btn:hover{ background:#F2723A; }
   .profile-head .who strong{ display:block; font-size:17px; color:#211F26; }
   .profile-head .who span{ display:block; font-size:12.5px; color:#8A8790; margin-top:2px; }
 
@@ -1480,7 +1494,13 @@
           <section id="screen-profile" class="app-screen">
             <div class="profile-scroll">
               <div class="profile-head">
-                <div class="avatar" id="profile-avatar">H</div>
+                <div class="avatar-wrap">
+                  <div class="avatar" id="profile-avatar">H</div>
+                  <button class="avatar-edit-btn" id="btn-avatar-upload" type="button" aria-label="Zmień zdjęcie">
+                    <svg width="13" height="13" viewBox="0 0 18 18" fill="none"><path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h1.8l.7-1.2a1 1 0 0 1 .87-.5h4.26a1 1 0 0 1 .87.5l.7 1.2h1.8A1.5 1.5 0 0 1 16 5.5v8A1.5 1.5 0 0 1 14.5 15h-11A1.5 1.5 0 0 1 2 13.5v-8Z" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><circle cx="9" cy="9.5" r="2.6" stroke="#fff" stroke-width="1.3"/></svg>
+                  </button>
+                  <input type="file" id="avatar-file-input" accept="image/*" hidden>
+                </div>
                 <div class="who">
                   <strong id="profile-name">Użytkownik Handy</strong>
                   <span id="profile-email">—</span>
@@ -1814,6 +1834,8 @@ const T = {
     toast_confirmed: 'Udział potwierdzony!', toast_pay_yes: 'Super, dzięki za informację!', toast_pay_no: 'Zgłoszono — sprawdzimy to.',
     btn_delete_task: 'Usuń zlecenie', confirm_delete_task: 'Usunąć to zlecenie?', toast_task_deleted: 'Zlecenie usunięte.',
     btn_take_job: 'Weź zlecenie', toast_job_taken: 'Zlecenie Twoje!',
+    toast_avatar_ok: 'Zdjęcie zaktualizowane!', toast_avatar_error: 'Nie udało się wgrać zdjęcia: ',
+    toast_avatar_type: 'Wybierz plik graficzny.', toast_avatar_size: 'Zdjęcie może mieć maks. 5 MB.',
     default_name: 'Użytkownik Handy',
     stat_jobs: 'zleceń', stat_rating: 'ocena', stat_months: 'mies. w Handy',
     menu_edit: 'Edytuj profil', menu_payments: 'Metody płatności', menu_places: 'Zapisane miejsca',
@@ -1879,6 +1901,8 @@ const T = {
     toast_confirmed: 'Участие подтверждено!', toast_pay_yes: 'Отлично, спасибо за информацию!', toast_pay_no: 'Сообщено — мы разберёмся.',
     btn_delete_task: 'Удалить заказ', confirm_delete_task: 'Удалить этот заказ?', toast_task_deleted: 'Заказ удалён.',
     btn_take_job: 'Взять заказ', toast_job_taken: 'Заказ твой!',
+    toast_avatar_ok: 'Фото обновлено!', toast_avatar_error: 'Не удалось загрузить фото: ',
+    toast_avatar_type: 'Выбери файл изображения.', toast_avatar_size: 'Фото не больше 5 МБ.',
     default_name: 'Пользователь Handy',
     stat_jobs: 'заказов', stat_rating: 'рейтинг', stat_months: 'мес. в Handy',
     menu_edit: 'Редактировать профиль', menu_payments: 'Способы оплаты', menu_places: 'Сохранённые места',
@@ -1944,6 +1968,8 @@ const T = {
     toast_confirmed: 'Attendance confirmed!', toast_pay_yes: 'Great, thanks for letting us know!', toast_pay_no: "Reported — we'll look into it.",
     btn_delete_task: 'Delete task', confirm_delete_task: 'Delete this task?', toast_task_deleted: 'Task deleted.',
     btn_take_job: 'Take job', toast_job_taken: "It's yours!",
+    toast_avatar_ok: 'Photo updated!', toast_avatar_error: 'Could not upload photo: ',
+    toast_avatar_type: 'Please choose an image file.', toast_avatar_size: 'Photo must be under 5 MB.',
     default_name: 'Handy User',
     stat_jobs: 'jobs', stat_rating: 'rating', stat_months: 'mo. on Handy',
     menu_edit: 'Edit profile', menu_payments: 'Payment methods', menu_places: 'Saved places',
@@ -2846,10 +2872,52 @@ function renderProfile(){
   const name = deriveDisplayName(userEmail) || T[currentLang].default_name;
   document.getElementById('profile-name').textContent = name;
   document.getElementById('profile-email').textContent = userEmail || '—';
-  document.getElementById('profile-avatar').textContent = name.trim().charAt(0).toUpperCase() || 'H';
+  const avatarEl = document.getElementById('profile-avatar');
+  if(currentProfile && currentProfile.avatar_url){
+    avatarEl.style.backgroundImage = `url("${currentProfile.avatar_url}")`;
+    avatarEl.textContent = '';
+  } else {
+    avatarEl.style.backgroundImage = '';
+    avatarEl.textContent = name.trim().charAt(0).toUpperCase() || 'H';
+  }
   document.getElementById('profile-role-icon').textContent = selectedRole === 'worker' ? '🔧' : '📦';
   document.getElementById('profile-role-label').textContent = roleLabel();
 }
+
+document.getElementById('btn-avatar-upload').addEventListener('click', () => {
+  document.getElementById('avatar-file-input').click();
+});
+
+document.getElementById('avatar-file-input').addEventListener('change', async function(){
+  const file = this.files[0];
+  this.value = '';
+  if(!file || !currentUser) return;
+  if(!file.type.startsWith('image/')){
+    showToast(T[currentLang].toast_avatar_type);
+    return;
+  }
+  if(file.size > 5 * 1024 * 1024){
+    showToast(T[currentLang].toast_avatar_size);
+    return;
+  }
+  const ext = file.name.split('.').pop() || 'jpg';
+  const path = `${currentUser.id}/avatar.${ext}`;
+  const { error: uploadError } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
+  if(uploadError){
+    showToast(T[currentLang].toast_avatar_error + uploadError.message);
+    return;
+  }
+  const { data: urlData } = sb.storage.from('avatars').getPublicUrl(path);
+  const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
+  const { error: updateError } = await sb.from('profiles').update({ avatar_url: avatarUrl }).eq('id', currentUser.id);
+  if(updateError){
+    showToast(T[currentLang].toast_avatar_error + updateError.message);
+    return;
+  }
+  currentProfile = currentProfile ? { ...currentProfile, avatar_url: avatarUrl } : { avatar_url: avatarUrl };
+  renderProfile();
+  showToast(T[currentLang].toast_avatar_ok);
+});
 
 document.querySelectorAll('.menu-row[data-menu]').forEach(btn => {
   btn.addEventListener('click', () => showToast(T[currentLang].toast_menu_soon));
