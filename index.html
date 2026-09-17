@@ -35,6 +35,7 @@
   }
 
   *{box-sizing:border-box;}
+  [hidden]{ display:none !important; }
   body{
     background:var(--page-bg);
     color:var(--page-text);
@@ -656,6 +657,40 @@
   }
   .toast.show{ opacity:1; transform:translate(-50%,0); }
 
+  .confirm-modal{
+    position:absolute;
+    inset:0;
+    background:rgba(33,20,10,.4);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:70;
+    padding:24px;
+    opacity:1;
+    transition:opacity .2s ease;
+  }
+  .confirm-modal.hidden{ opacity:0; pointer-events:none; }
+  .confirm-modal-card{
+    background:#fff;
+    border-radius:20px;
+    padding:22px;
+    width:100%;
+    max-width:280px;
+    text-align:center;
+    box-shadow:0 20px 50px rgba(33,20,10,.3);
+  }
+  .confirm-modal-card p{ margin:0 0 18px; font-size:14.5px; color:#211F26; line-height:1.5; }
+  .confirm-modal-actions{ display:flex; gap:8px; }
+  .confirm-modal-actions button{
+    flex:1;
+    font-family:inherit; font-size:13.5px; font-weight:700;
+    padding:11px; border-radius:14px; border:none; cursor:pointer;
+  }
+  #confirm-modal-cancel{ background:#FBF9F7; color:#211F26; }
+  #confirm-modal-cancel:hover{ background:#F2EEE7; }
+  #confirm-modal-ok.danger{ background:#E85D4E; color:#fff; }
+  #confirm-modal-ok.danger:hover{ background:#D14A3C; }
+
   /* ---------- Radar (map) ---------- */
   #screen-radar{ padding:0; }
   .radar-header{ padding:64px 20px 14px; flex-shrink:0; background:#fff; position:relative; z-index:3; }
@@ -703,6 +738,23 @@
     display:inline-flex; align-items:center; gap:5px;
     cursor:pointer;
     white-space:nowrap;
+  }
+
+  .worker-marker{
+    width:40px; height:40px;
+    border-radius:50%;
+    background:#fff;
+    border:2px solid #EDE7E1;
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px;
+    box-shadow:0 4px 12px rgba(33,20,10,.14);
+    cursor:pointer;
+  }
+  .worker-marker.selected{
+    background:#FF8A4D;
+    border-color:#FF8A4D;
+    box-shadow:0 10px 20px rgba(255,138,77,.4);
+    transform:scale(1.1);
   }
 
   .own-task-marker{
@@ -1681,6 +1733,17 @@
           </div>
 
           <div class="toast" id="toast"></div>
+
+          <div class="confirm-modal hidden" id="confirm-modal">
+            <div class="confirm-modal-card">
+              <p id="confirm-modal-text"></p>
+              <div class="confirm-modal-actions">
+                <button id="confirm-modal-cancel" type="button" data-i18n="confirm_cancel">Anuluj</button>
+                <button id="confirm-modal-ok" type="button" class="danger" data-i18n="confirm_ok">Usuń</button>
+              </div>
+            </div>
+          </div>
+
           <div class="home-indicator"></div>
         </div>
       </div>
@@ -1834,6 +1897,7 @@ const T = {
     toast_confirmed: 'Udział potwierdzony!', toast_pay_yes: 'Super, dzięki za informację!', toast_pay_no: 'Zgłoszono — sprawdzimy to.',
     btn_delete_task: 'Usuń zlecenie', confirm_delete_task: 'Usunąć to zlecenie?', toast_task_deleted: 'Zlecenie usunięte.',
     toast_delete_error: 'Nie udało się usunąć zlecenia. Spróbuj ponownie.',
+    confirm_cancel: 'Anuluj', confirm_ok: 'Usuń',
     btn_take_job: 'Weź zlecenie', toast_job_taken: 'Zlecenie Twoje!',
     toast_avatar_ok: 'Zdjęcie zaktualizowane!', toast_avatar_error: 'Nie udało się wgrać zdjęcia: ',
     toast_avatar_type: 'Wybierz plik graficzny.', toast_avatar_size: 'Zdjęcie może mieć maks. 5 MB.',
@@ -1902,6 +1966,7 @@ const T = {
     toast_confirmed: 'Участие подтверждено!', toast_pay_yes: 'Отлично, спасибо за информацию!', toast_pay_no: 'Сообщено — мы разберёмся.',
     btn_delete_task: 'Удалить заказ', confirm_delete_task: 'Удалить этот заказ?', toast_task_deleted: 'Заказ удалён.',
     toast_delete_error: 'Не удалось удалить заказ. Попробуй ещё раз.',
+    confirm_cancel: 'Отмена', confirm_ok: 'Удалить',
     btn_take_job: 'Взять заказ', toast_job_taken: 'Заказ твой!',
     toast_avatar_ok: 'Фото обновлено!', toast_avatar_error: 'Не удалось загрузить фото: ',
     toast_avatar_type: 'Выбери файл изображения.', toast_avatar_size: 'Фото не больше 5 МБ.',
@@ -1970,6 +2035,7 @@ const T = {
     toast_confirmed: 'Attendance confirmed!', toast_pay_yes: 'Great, thanks for letting us know!', toast_pay_no: "Reported — we'll look into it.",
     btn_delete_task: 'Delete task', confirm_delete_task: 'Delete this task?', toast_task_deleted: 'Task deleted.',
     toast_delete_error: 'Could not delete the task. Please try again.',
+    confirm_cancel: 'Cancel', confirm_ok: 'Delete',
     btn_take_job: 'Take job', toast_job_taken: "It's yours!",
     toast_avatar_ok: 'Photo updated!', toast_avatar_error: 'Could not upload photo: ',
     toast_avatar_type: 'Please choose an image file.', toast_avatar_size: 'Photo must be under 5 MB.',
@@ -2106,6 +2172,26 @@ function showToast(msg){
   toast.textContent = msg;
   toast.classList.add('show');
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function showConfirm(text){
+  const modal = document.getElementById('confirm-modal');
+  document.getElementById('confirm-modal-text').textContent = text;
+  modal.classList.remove('hidden');
+  return new Promise(resolve => {
+    const cancelBtn = document.getElementById('confirm-modal-cancel');
+    const okBtn = document.getElementById('confirm-modal-ok');
+    function cleanup(result){
+      modal.classList.add('hidden');
+      cancelBtn.removeEventListener('click', onCancel);
+      okBtn.removeEventListener('click', onOk);
+      resolve(result);
+    }
+    function onCancel(){ cleanup(false); }
+    function onOk(){ cleanup(true); }
+    cancelBtn.addEventListener('click', onCancel);
+    okBtn.addEventListener('click', onOk);
+  });
 }
 
 function closeLangMenu(){ document.getElementById('lang-menu').classList.remove('open'); }
@@ -2501,11 +2587,18 @@ function rebuildMarkers(){
   });
 }
 
+function markerInnerHtml(item, isSelected){
+  if(radarMode() === 'workers'){
+    return '<div class="worker-marker' + (isSelected ? ' selected' : '') + '">' + item.emoji + '</div>';
+  }
+  const cls = isSelected ? 'pin-selected' : 'pin-price';
+  return '<div class="' + cls + '">' + radarLabel(item) + '</div>';
+}
+
 function makeMarkerEl(item, isSelected){
   const wrap = document.createElement('div');
   wrap.className = 'job-marker-wrap';
-  const cls = isSelected ? 'pin-selected' : 'pin-price';
-  wrap.innerHTML = '<div class="' + cls + '">' + radarLabel(item) + '</div>';
+  wrap.innerHTML = markerInnerHtml(item, isSelected);
   return wrap;
 }
 
@@ -2515,8 +2608,7 @@ function refreshMarkerIcons(){
     if(!marker) return;
     const el = marker.getElement();
     const isSelected = item.id === selectedJobId;
-    const cls = isSelected ? 'pin-selected' : 'pin-price';
-    el.innerHTML = '<div class="' + cls + '">' + radarLabel(item) + '</div>';
+    el.innerHTML = markerInnerHtml(item, isSelected);
   });
 }
 
@@ -2789,7 +2881,7 @@ function renderActivityList(){
       const id = Number(btn.dataset.delete);
       const a = ACTIVITIES.find(x => x.id === id);
       if(!a) return;
-      if(!confirm(T[currentLang].confirm_delete_task)) return;
+      if(!(await showConfirm(T[currentLang].confirm_delete_task))) return;
       if(a.supabaseId){
         const { data: deletedRows, error } = await sb.from('tasks').delete().eq('id', a.supabaseId).select();
         if(error || !deletedRows || deletedRows.length === 0){
