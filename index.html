@@ -614,6 +614,30 @@
   #screen-success h2{ font-family:'Fredoka',sans-serif; font-size:23px; margin:0 0 8px; color:#211F26; font-weight:600; }
   #screen-success p{ margin:0 0 26px; color:#6E6B75; font-size:14px; line-height:1.5; max-width:260px; }
 
+  /* ---------- Confirm email (waiting) screen ---------- */
+  #screen-confirm-email{ background:#fff; padding:0 24px 28px; }
+  #screen-confirm-email .confirm-email-inner{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding-bottom:40px;
+  }
+  .confirm-icon{ font-size:56px; margin-bottom:18px; animation:confirmPulse 1.8s ease-in-out infinite; }
+  @keyframes confirmPulse{ 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.6; transform:scale(.94); } }
+  #screen-confirm-email h2{ font-family:'Fredoka',sans-serif; font-size:22px; margin:0 0 8px; color:#211F26; font-weight:600; }
+  #screen-confirm-email p{ margin:0 0 22px; color:#6E6B75; font-size:14px; line-height:1.5; max-width:270px; }
+  .confirm-spinner{
+    width:22px; height:22px; border-radius:50%;
+    border:2.5px solid rgba(255,138,77,.25);
+    border-top-color:#FF8A4D;
+    animation:confirmSpin .8s linear infinite;
+    margin-bottom:26px;
+  }
+  @keyframes confirmSpin{ to{ transform:rotate(360deg); } }
+
   /* ---------- Toast ---------- */
   .toast{
     position:absolute;
@@ -1315,6 +1339,22 @@
             </div>
           </section>
 
+          <!-- Confirm email (waiting) -->
+          <section id="screen-confirm-email" class="app-screen">
+            <div class="topbar">
+              <button class="back-btn" data-back="auth" type="button" aria-label="Wstecz">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 3.5 5.5 9l5.5 5.5" stroke="#211F26" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="confirm-email-inner">
+              <div class="confirm-icon">✉️</div>
+              <h2 data-i18n="confirm_title">Sprawdź swoją skrzynkę</h2>
+              <p id="confirm-email-text" data-i18n="confirm_subtitle">Wysłaliśmy link potwierdzający. Kliknij go w mailu — ten ekran sam przejdzie dalej.</p>
+              <div class="confirm-spinner"></div>
+              <button class="link-inline" id="btn-resend-confirm" type="button" data-i18n="confirm_resend">Wyślij ponownie</button>
+            </div>
+          </section>
+
           <!-- Success -->
           <section id="screen-success" class="app-screen">
             <div id="lottie-check"></div>
@@ -1736,6 +1776,7 @@ const screens = {
   auth: document.getElementById('screen-auth'),
   signup: document.getElementById('screen-signup'),
   login: document.getElementById('screen-login'),
+  confirmEmail: document.getElementById('screen-confirm-email'),
   success: document.getElementById('screen-success'),
   radar: document.getElementById('screen-radar'),
   activity: document.getElementById('screen-activity'),
@@ -1824,8 +1865,12 @@ const T = {
     toast_signup_error: 'Nie udało się utworzyć konta: ',
     toast_login_error: 'Nie udało się zalogować: ',
     toast_session_error: 'Błąd sesji, spróbuj ponownie.',
-    toast_confirm_email: 'Wysłaliśmy e-mail z potwierdzeniem. Kliknij link, aby dokończyć rejestrację.',
-    toast_method_soon: 'Ta metoda logowania jest jeszcze niedostępna. Użyj adresu e-mail.'
+    toast_method_soon: 'Ta metoda logowania jest jeszcze niedostępna. Użyj adresu e-mail.',
+    confirm_title: 'Sprawdź swoją skrzynkę',
+    confirm_subtitle: 'Wysłaliśmy link potwierdzający. Kliknij go w mailu — ten ekran sam przejdzie dalej.',
+    confirm_resend: 'Wyślij ponownie',
+    toast_resend_ok: 'Wysłaliśmy link jeszcze raz.',
+    toast_resend_error: 'Nie udało się wysłać ponownie: '
   },
   ru: {
     auth_step: 'Шаг 1 из 2', auth_title: 'Присоединяйся к Handy', auth_subtitle: 'Выбери способ регистрации',
@@ -1887,8 +1932,12 @@ const T = {
     toast_signup_error: 'Не удалось создать аккаунт: ',
     toast_login_error: 'Не удалось войти: ',
     toast_session_error: 'Ошибка сессии, попробуй ещё раз.',
-    toast_confirm_email: 'Мы отправили письмо с подтверждением. Перейди по ссылке в письме, чтобы завершить регистрацию.',
-    toast_method_soon: 'Этот способ входа пока недоступен. Используй email.'
+    toast_method_soon: 'Этот способ входа пока недоступен. Используй email.',
+    confirm_title: 'Проверь почту',
+    confirm_subtitle: 'Мы отправили ссылку для подтверждения. Перейди по ней в письме — этот экран сам продолжит дальше.',
+    confirm_resend: 'Отправить ещё раз',
+    toast_resend_ok: 'Письмо отправлено повторно.',
+    toast_resend_error: 'Не удалось отправить повторно: '
   },
   en: {
     auth_step: 'Step 1 of 2', auth_title: 'Join Handy', auth_subtitle: "Choose how you'd like to sign up",
@@ -1950,8 +1999,12 @@ const T = {
     toast_signup_error: 'Could not create account: ',
     toast_login_error: 'Could not sign in: ',
     toast_session_error: 'Session error, please try again.',
-    toast_confirm_email: 'We sent a confirmation email. Click the link in it to finish signing up.',
-    toast_method_soon: 'This sign-in method isn’t available yet. Please use email.'
+    toast_method_soon: 'This sign-in method isn’t available yet. Please use email.',
+    confirm_title: 'Check your inbox',
+    confirm_subtitle: 'We sent you a confirmation link. Click it in the email — this screen will continue on its own.',
+    confirm_resend: 'Resend email',
+    toast_resend_ok: 'Email sent again.',
+    toast_resend_error: 'Could not resend: '
   }
 };
 
@@ -2011,6 +2064,7 @@ function goTo(name){
   clearSplashTimer();
   closeDobPopover();
   closeLangMenu();
+  if(name !== 'confirmEmail') stopConfirmPolling();
   Object.entries(screens).forEach(([key, el]) => {
     el.classList.toggle('active', key === name);
   });
@@ -2270,10 +2324,36 @@ btnCreate.addEventListener('click', function(){
       currentUser = data.user;
       goTo('role');
     } else {
-      showToast(T[currentLang].toast_confirm_email);
-      goTo('auth');
+      goTo('confirmEmail');
+      startConfirmPolling();
     }
   });
+});
+
+let confirmPollTimer = null;
+function startConfirmPolling(){
+  stopConfirmPolling();
+  confirmPollTimer = setInterval(async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if(session){
+      stopConfirmPolling();
+      currentUser = session.user;
+      userEmail = currentUser.email;
+      goTo('role');
+    }
+  }, 2500);
+}
+function stopConfirmPolling(){
+  if(confirmPollTimer){
+    clearInterval(confirmPollTimer);
+    confirmPollTimer = null;
+  }
+}
+
+document.getElementById('btn-resend-confirm').addEventListener('click', async function(){
+  if(!userEmail) return;
+  const { error } = await sb.auth.resend({ type: 'signup', email: userEmail });
+  showToast(error ? (T[currentLang].toast_resend_error + error.message) : T[currentLang].toast_resend_ok);
 });
 
 document.getElementById('btn-success-next').addEventListener('click', () => goTo('radar'));
