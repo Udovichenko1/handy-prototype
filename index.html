@@ -1833,6 +1833,7 @@ const T = {
     rate_prompt: 'Oceń wykonawcę',
     toast_confirmed: 'Udział potwierdzony!', toast_pay_yes: 'Super, dzięki za informację!', toast_pay_no: 'Zgłoszono — sprawdzimy to.',
     btn_delete_task: 'Usuń zlecenie', confirm_delete_task: 'Usunąć to zlecenie?', toast_task_deleted: 'Zlecenie usunięte.',
+    toast_delete_error: 'Nie udało się usunąć zlecenia. Spróbuj ponownie.',
     btn_take_job: 'Weź zlecenie', toast_job_taken: 'Zlecenie Twoje!',
     toast_avatar_ok: 'Zdjęcie zaktualizowane!', toast_avatar_error: 'Nie udało się wgrać zdjęcia: ',
     toast_avatar_type: 'Wybierz plik graficzny.', toast_avatar_size: 'Zdjęcie może mieć maks. 5 MB.',
@@ -1900,6 +1901,7 @@ const T = {
     rate_prompt: 'Оцени исполнителя',
     toast_confirmed: 'Участие подтверждено!', toast_pay_yes: 'Отлично, спасибо за информацию!', toast_pay_no: 'Сообщено — мы разберёмся.',
     btn_delete_task: 'Удалить заказ', confirm_delete_task: 'Удалить этот заказ?', toast_task_deleted: 'Заказ удалён.',
+    toast_delete_error: 'Не удалось удалить заказ. Попробуй ещё раз.',
     btn_take_job: 'Взять заказ', toast_job_taken: 'Заказ твой!',
     toast_avatar_ok: 'Фото обновлено!', toast_avatar_error: 'Не удалось загрузить фото: ',
     toast_avatar_type: 'Выбери файл изображения.', toast_avatar_size: 'Фото не больше 5 МБ.',
@@ -1967,6 +1969,7 @@ const T = {
     rate_prompt: 'Rate the contractor',
     toast_confirmed: 'Attendance confirmed!', toast_pay_yes: 'Great, thanks for letting us know!', toast_pay_no: "Reported — we'll look into it.",
     btn_delete_task: 'Delete task', confirm_delete_task: 'Delete this task?', toast_task_deleted: 'Task deleted.',
+    toast_delete_error: 'Could not delete the task. Please try again.',
     btn_take_job: 'Take job', toast_job_taken: "It's yours!",
     toast_avatar_ok: 'Photo updated!', toast_avatar_error: 'Could not upload photo: ',
     toast_avatar_type: 'Please choose an image file.', toast_avatar_size: 'Photo must be under 5 MB.',
@@ -2788,7 +2791,11 @@ function renderActivityList(){
       if(!a) return;
       if(!confirm(T[currentLang].confirm_delete_task)) return;
       if(a.supabaseId){
-        await sb.from('tasks').delete().eq('id', a.supabaseId);
+        const { data: deletedRows, error } = await sb.from('tasks').delete().eq('id', a.supabaseId).select();
+        if(error || !deletedRows || deletedRows.length === 0){
+          showToast(T[currentLang].toast_delete_error);
+          return;
+        }
       }
       const idx = ACTIVITIES.findIndex(x => x.id === id);
       if(idx !== -1) ACTIVITIES.splice(idx, 1);
