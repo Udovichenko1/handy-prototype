@@ -1918,6 +1918,7 @@ const T = {
     btn_take_job: 'Weź zlecenie', toast_job_taken: 'Zlecenie Twoje!',
     toast_avatar_ok: 'Zdjęcie zaktualizowane!', toast_avatar_error: 'Nie udało się wgrać zdjęcia: ',
     toast_avatar_type: 'Wybierz plik graficzny.', toast_avatar_size: 'Zdjęcie może mieć maks. 5 MB.',
+    toast_geocode_fail: 'Nie znaleziono adresu na mapie — użyto przybliżonej lokalizacji.',
     default_name: 'Użytkownik Handy',
     stat_jobs: 'zleceń', stat_rating: 'ocena', stat_months: 'mies. w Handy',
     menu_edit: 'Edytuj profil', menu_payments: 'Metody płatności', menu_places: 'Zapisane miejsca',
@@ -1989,6 +1990,7 @@ const T = {
     btn_take_job: 'Взять заказ', toast_job_taken: 'Заказ твой!',
     toast_avatar_ok: 'Фото обновлено!', toast_avatar_error: 'Не удалось загрузить фото: ',
     toast_avatar_type: 'Выбери файл изображения.', toast_avatar_size: 'Фото не больше 5 МБ.',
+    toast_geocode_fail: 'Не нашли адрес на карте — использовали примерное расположение.',
     default_name: 'Пользователь Handy',
     stat_jobs: 'заказов', stat_rating: 'рейтинг', stat_months: 'мес. в Handy',
     menu_edit: 'Редактировать профиль', menu_payments: 'Способы оплаты', menu_places: 'Сохранённые места',
@@ -2060,6 +2062,7 @@ const T = {
     btn_take_job: 'Take job', toast_job_taken: "It's yours!",
     toast_avatar_ok: 'Photo updated!', toast_avatar_error: 'Could not upload photo: ',
     toast_avatar_type: 'Please choose an image file.', toast_avatar_size: 'Photo must be under 5 MB.',
+    toast_geocode_fail: "Couldn't find that address on the map — used an approximate location.",
     default_name: 'Handy User',
     stat_jobs: 'jobs', stat_rating: 'rating', stat_months: 'mo. on Handy',
     menu_edit: 'Edit profile', menu_payments: 'Payment methods', menu_places: 'Saved places',
@@ -2476,6 +2479,22 @@ function radarLabel(item){
 function categoryEmoji(catId){
   const cat = (typeof CATEGORIES !== 'undefined') ? CATEGORIES.find(c => c.id === catId) : null;
   return cat ? cat.emoji : '📦';
+}
+
+async function geocodeAddress(address){
+  if(!address || !address.trim()) return null;
+  try{
+    const url = 'https://api.maptiler.com/geocoding/' + encodeURIComponent(address) +
+      '.json?key=' + MAPTILER_KEY + '&limit=1&language=pl&proximity=21.0122,52.2297';
+    const res = await fetch(url);
+    if(!res.ok) return null;
+    const data = await res.json();
+    const feature = data.features && data.features[0];
+    if(!feature || !feature.center) return null;
+    return { lng: feature.center[0], lat: feature.center[1] };
+  } catch(e){
+    return null;
+  }
 }
 
 async function refreshRadarData(){
@@ -3123,8 +3142,10 @@ btnPublish.addEventListener('click', function(){
 
     let supabaseId = null;
     if(currentUser){
-      const lat = 52.2297 + (Math.random() - 0.5) * 0.08;
-      const lng = 21.0122 + (Math.random() - 0.5) * 0.12;
+      const geocoded = await geocodeAddress(address);
+      const lat = geocoded ? geocoded.lat : 52.2297 + (Math.random() - 0.5) * 0.08;
+      const lng = geocoded ? geocoded.lng : 21.0122 + (Math.random() - 0.5) * 0.12;
+      if(!geocoded) showToast(T[currentLang].toast_geocode_fail);
       const { data, error } = await sb.from('tasks').insert({
         client_id: currentUser.id,
         title, category: selectedCategory.id,
