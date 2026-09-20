@@ -331,17 +331,6 @@
 
   .footnote{ text-align:center; font-size:12px; color:#B8B4BE; margin-top:10px; }
 
-  /* ---------- Coming soon ---------- */
-  #screen-soon{
-    background:#fff;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    padding:0 30px;
-  }
-  #lottie-box-soon{ width:150px; height:150px; margin-bottom:6px; }
-  #screen-soon h2{ font-family:'Fredoka',sans-serif; font-size:22px; margin:0 0 8px; color:#211F26; font-weight:600; }
-  #screen-soon p{ margin:0 0 26px; color:#6E6B75; font-size:14px; line-height:1.5; max-width:260px; }
   .btn-ghost{
     border:2px solid #EDE7E1;
     background:transparent;
@@ -1150,29 +1139,6 @@
   }
   textarea.ta::placeholder{ color:#C7C2BA; }
 
-  /* ---------- Dev toolbar ---------- */
-  .devbar{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    justify-content:center;
-  }
-  .devbar button{
-    font-family:inherit;
-    font-size:12.5px;
-    font-weight:600;
-    padding:9px 14px;
-    border-radius:999px;
-    border:1px solid var(--panel-border);
-    background:var(--panel-bg);
-    color:var(--page-text);
-    cursor:pointer;
-    transition:border-color .2s ease, transform .15s ease;
-  }
-  .devbar button:hover{ border-color:#FF8A4D; }
-  .devbar button:active{ transform:scale(.96); }
-  .devbar button.primary{ background:#FF8A4D; border-color:#FF8A4D; color:#fff; }
-
   /* ---------- Style guide panel ---------- */
   .styleguide{
     width:min(390px, 90vw);
@@ -1197,7 +1163,7 @@
 
   /* ---------- Real app mode: strip the showcase chrome on phones / installed PWA ---------- */
   @media (max-width:640px), (display-mode:standalone){
-    .masthead, .devbar, .styleguide{ display:none !important; }
+    .masthead, .styleguide{ display:none !important; }
     .wrap{ padding:0; gap:0; min-height:100dvh; }
     .stage{ max-width:none; gap:0; }
     .phone-col{ gap:0; width:100%; }
@@ -1726,14 +1692,6 @@
             </div>
           </section>
 
-          <!-- Coming soon -->
-          <section id="screen-soon" class="app-screen">
-            <div id="lottie-box-soon"></div>
-            <h2 data-i18n="soon_title">Już wkrótce!</h2>
-            <p id="soon-text">Przygotowujemy najlepsze doświadczenie dla Ciebie.</p>
-            <button class="btn-ghost" id="btn-back" type="button" data-i18n="soon_button">← Wróć do wyboru</button>
-          </section>
-
           <div class="lang-switch" id="lang-switch" hidden>
             <button class="lang-btn" id="lang-btn" type="button" aria-label="Zmień język">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#211F26" stroke-width="1.2"/><path d="M1 7h12M7 1c1.7 1.7 1.7 10.3 0 12M7 1c-1.7 1.7-1.7 10.3 0 12" stroke="#211F26" stroke-width="1.1"/></svg>
@@ -1763,18 +1721,6 @@
         </div>
       </div>
 
-      <div class="devbar">
-        <button data-jump="splash" class="primary">↻ Odtwórz ponownie</button>
-        <button data-jump="auth">Logowanie</button>
-        <button data-jump="signup">Rejestracja</button>
-        <button data-jump="role">Wybór roli</button>
-        <button data-jump="success">Sukces</button>
-        <button data-jump="radar">Radar</button>
-        <button data-jump="activity">Aktywność</button>
-        <button data-jump="profile">Profil</button>
-        <button data-jump="createCategory">+ Zadanie</button>
-        <button data-jump="soon">Ekran „wkrótce”</button>
-      </div>
     </div>
 
     <div class="styleguide">
@@ -1831,7 +1777,6 @@ function mkAnim(container, data, loop, autoplay){
 
 const animBoxSplash = mkAnim('lottie-box-splash', LOTTIE_BOX, true);
 const animDotsSplash = mkAnim('lottie-dots-splash', LOTTIE_DOTS, true);
-const animBoxSoon = mkAnim('lottie-box-soon', LOTTIE_BOX, true);
 const animDotsBtn = mkAnim('lottie-dots-btn', LOTTIE_DOTS, true);
 const animDotsCreate = mkAnim('lottie-dots-create', LOTTIE_DOTS, true);
 const animDotsLogin = mkAnim('lottie-dots-login', LOTTIE_DOTS, true);
@@ -1850,8 +1795,7 @@ const screens = {
   activityDetail: document.getElementById('screen-activity-detail'),
   profile: document.getElementById('screen-profile'),
   createCategory: document.getElementById('screen-create-category'),
-  createDetails: document.getElementById('screen-create-details'),
-  soon: document.getElementById('screen-soon')
+  createDetails: document.getElementById('screen-create-details')
 };
 let splashTimer = null;
 let toastTimer = null;
@@ -1891,7 +1835,6 @@ const T = {
     role_card2_title: 'Chcę zarabiać', role_card2_desc: 'Szukam zleceń w mojej okolicy',
     btn_continue: 'Kontynuuj', role_footnote: 'To już ostatni krok',
     success_title: 'Konto utworzone!', success_text: (r) => `Witaj w Handy! Konto (${r}) jest już gotowe.`, success_button: 'Przejdź dalej',
-    soon_title: 'Już wkrótce!', soon_text: 'Przygotowujemy najlepsze doświadczenie dla Ciebie.', soon_button: '← Wróć do wyboru',
     toast_doc: 'Dokument pojawi się wkrótce',
     radar_title: 'Radar', radar_city: 'Warszawa', radar_list: 'Lista', radar_map: 'Mapa',
     toast_city: 'Zmiana miasta pojawi się wkrótce', toast_nav: 'Ta sekcja pojawi się wkrótce',
@@ -1963,7 +1906,6 @@ const T = {
     role_card2_title: 'Хочу зарабатывать', role_card2_desc: 'Ищу заказы поблизости',
     btn_continue: 'Продолжить', role_footnote: 'Это уже последний шаг',
     success_title: 'Аккаунт создан!', success_text: (r) => `Добро пожаловать в Handy! Аккаунт (${r}) готов.`, success_button: 'Перейти дальше',
-    soon_title: 'Уже скоро!', soon_text: 'Мы готовим для тебя лучший опыт.', soon_button: '← Назад к выбору',
     toast_doc: 'Документ появится совсем скоро',
     radar_title: 'Радар', radar_city: 'Варшава', radar_list: 'Список', radar_map: 'Карта',
     toast_city: 'Смена города появится совсем скоро', toast_nav: 'Этот раздел появится совсем скоро',
@@ -2035,7 +1977,6 @@ const T = {
     role_card2_title: 'I want to earn', role_card2_desc: "I'm looking for jobs nearby",
     btn_continue: 'Continue', role_footnote: 'This is the last step',
     success_title: 'Account created!', success_text: (r) => `Welcome to Handy! Your account (${r}) is ready.`, success_button: 'Continue',
-    soon_title: 'Coming soon!', soon_text: "We're crafting the best experience for you.", soon_button: '← Back to selection',
     toast_doc: 'This document is coming soon',
     radar_title: 'Radar', radar_city: 'Warsaw', radar_list: 'List', radar_map: 'Map',
     toast_city: 'Changing city is coming soon', toast_nav: 'This section is coming soon',
@@ -2109,10 +2050,6 @@ function renderTerms(lang){
 function setSuccessText(){
   document.getElementById('success-text').textContent = T[currentLang].success_text(roleLabel());
 }
-function setSoonText(){
-  document.getElementById('soon-text').textContent = T[currentLang].soon_text;
-}
-
 function applyLang(lang){
   currentLang = lang;
   const d = T[lang];
@@ -2130,7 +2067,6 @@ function applyLang(lang){
     b.classList.toggle('active', b.dataset.lang === lang);
   });
   if(screens.success.classList.contains('active')) setSuccessText();
-  if(screens.soon.classList.contains('active')) setSoonText();
   if(screens.radar.classList.contains('active') && typeof renderJobList === 'function'){
     renderJobList();
     showJob(selectedJobId, false);
@@ -2168,10 +2104,6 @@ function goTo(name){
     setSuccessText();
     animCheck.stop();
     animCheck.goToAndPlay(0, false);
-  }
-  if(name === 'soon'){
-    animBoxSoon.goToAndPlay(0, true);
-    setSoonText();
   }
   if(name === 'radar' && mapInstance){
     refreshRadarData();
@@ -2456,8 +2388,6 @@ document.getElementById('btn-resend-confirm').addEventListener('click', async fu
 });
 
 document.getElementById('btn-success-next').addEventListener('click', () => goTo('radar'));
-
-document.getElementById('btn-back').addEventListener('click', () => goTo('role'));
 
 screens.splash.addEventListener('click', () => goTo('auth'));
 
@@ -3196,10 +3126,6 @@ document.querySelectorAll('.radar-nav [data-nav="add"]').forEach(btn => {
 });
 
 renderCategoryGrid();
-
-document.querySelectorAll('.devbar [data-jump]').forEach(btn => {
-  btn.addEventListener('click', () => goTo(btn.dataset.jump));
-});
 
 async function restoreSession(){
   const { data: { session } } = await sb.auth.getSession();
