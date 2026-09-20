@@ -786,6 +786,20 @@
     transition:opacity .2s ease;
     z-index:3;
   }
+  .map-empty-state{
+    position:absolute;
+    top:16px; left:16px; right:16px;
+    background:#fff;
+    border-radius:16px;
+    padding:14px 16px;
+    text-align:center;
+    color:#8A8790;
+    font-size:12.5px;
+    box-shadow:0 10px 24px rgba(33,20,10,.12);
+    z-index:4;
+    pointer-events:none;
+  }
+  .map-empty-state.hidden{ display:none; }
   .job-list.show{ opacity:1; pointer-events:auto; }
   .job-row{
     display:flex;
@@ -1417,6 +1431,7 @@
 
             <div class="map-area" id="map-area">
               <div id="map-canvas"></div>
+              <div class="map-empty-state hidden" id="map-empty-state"></div>
               <div class="job-list" id="job-list"></div>
 
               <div class="bottom-sheet" id="bottom-sheet">
@@ -1890,6 +1905,8 @@ const T = {
     status_taken: 'To zlecenie zostało obsadzone',
     status_applicants: (n) => `${n} chętnych — wybierz wykonawcę`,
     empty_activity: 'Nic tu jeszcze nie ma w tej kategorii.',
+    empty_jobs_radar: 'Brak dostępnych zleceń w Twojej okolicy. Sprawdź ponownie później.',
+    empty_workers_radar: 'Brak dostępnych wykonawców w Twojej okolicy. Sprawdź ponownie później.',
     detail_navigate: 'Nawiguj', detail_calendar: 'Do kalendarza', detail_message: 'Napisz',
     detail_confirm: 'Potwierdź udział',
     pay_question: 'Czy otrzymałeś zapłatę?', pay_yes: 'Tak, dostałem', pay_no: 'Nie, jeszcze nie',
@@ -1959,6 +1976,8 @@ const T = {
     status_taken: 'Этот заказ уже занят',
     status_applicants: (n) => `${n} желающих — выбери исполнителя`,
     empty_activity: 'Здесь пока ничего нет в этой категории.',
+    empty_jobs_radar: 'Пока нет доступных заказов в твоём районе. Загляни позже.',
+    empty_workers_radar: 'Пока нет доступных мастеров в твоём районе. Загляни позже.',
     detail_navigate: 'Маршрут', detail_calendar: 'В календарь', detail_message: 'Написать',
     detail_confirm: 'Подтвердить участие',
     pay_question: 'Ты получил оплату?', pay_yes: 'Да, получил', pay_no: 'Нет, ещё нет',
@@ -2028,6 +2047,8 @@ const T = {
     status_taken: 'This job has been taken',
     status_applicants: (n) => `${n} applicants — choose a contractor`,
     empty_activity: "There's nothing here yet in this category.",
+    empty_jobs_radar: 'No open tasks near you yet. Check back later.',
+    empty_workers_radar: 'No available contractors near you yet. Check back later.',
     detail_navigate: 'Navigate', detail_calendar: 'Add to calendar', detail_message: 'Message',
     detail_confirm: 'Confirm attendance',
     pay_question: 'Did you receive payment?', pay_yes: 'Yes, I got paid', pay_no: 'Not yet',
@@ -2438,30 +2459,9 @@ document.getElementById('btn-back').addEventListener('click', () => goTo('role')
 screens.splash.addEventListener('click', () => goTo('auth'));
 
 // ---------- Radar (map) ----------
-// Demo seed data — shown only as a fallback while the real database has no rows yet
-const DEMO_JOBS = [
-  { id:'demo-1', emoji:'📦', title:'Pomoc przy przeprowadzce', district:'Mokotów', time:'sob 21.09 · 14:00–18:00', distance:'1.2 km', price:120, lat:52.1900, lng:21.0300 },
-  { id:'demo-2', emoji:'🛋️', title:'Montaż szafy IKEA', district:'Wola', time:'dziś · 18:00–19:30', distance:'0.8 km', price:60, lat:52.2350, lng:20.9700 },
-  { id:'demo-3', emoji:'🌿', title:'Koszenie trawnika', district:'Ursynów', time:'niedz. 22.09 · 10:00–12:00', distance:'2.1 km', price:45, lat:52.1500, lng:21.0400 },
-  { id:'demo-4', emoji:'🧹', title:'Sprzątanie mieszkania', district:'Śródmieście', time:'jutro · 09:00–11:00', distance:'1.5 km', price:80, lat:52.2297, lng:21.0122 },
-  { id:'demo-5', emoji:'❄️', title:'Odśnieżanie podjazdu', district:'Bemowo', time:'dziś · 07:00–08:00', distance:'0.6 km', price:50, lat:52.2500, lng:20.9200 },
-  { id:'demo-6', emoji:'📮', title:'Przenoszenie pudeł', district:'Praga Płd.', time:'sob 21.09 · 11:00–13:00', distance:'3.0 km', price:40, lat:52.2100, lng:21.0700 },
-  { id:'demo-7', emoji:'🔧', title:'Drobne naprawy hydrauliczne', district:'Żoliborz', time:'jutro · 16:00–17:00', distance:'1.9 km', price:70, lat:52.2650, lng:20.9800 },
-  { id:'demo-8', emoji:'🚚', title:'Rozładunek dostawy', district:'Ochota', time:'dziś · 13:00–14:00', distance:'0.4 km', price:35, lat:52.2150, lng:20.9800 }
-];
-const DEMO_WORKERS = [
-  { id:'demo-1', emoji:'👷', name:'Marek K.', catKey:'cat_moving', rating:4.9, priceHour:45, distance:'1.1 km', lat:52.1950, lng:21.0250 },
-  { id:'demo-2', emoji:'🧹', name:'Kasia W.', catKey:'cat_cleaning', rating:4.8, priceHour:35, distance:'0.7 km', lat:52.2320, lng:20.9750 },
-  { id:'demo-3', emoji:'🔧', name:'Tomek N.', catKey:'cat_repair', rating:4.7, priceHour:50, distance:'1.8 km', lat:52.1550, lng:21.0350 },
-  { id:'demo-4', emoji:'🌿', name:'Anna P.', catKey:'cat_garden', rating:5.0, priceHour:30, distance:'2.2 km', lat:52.2280, lng:21.0100 },
-  { id:'demo-5', emoji:'🛋️', name:'Piotr S.', catKey:'cat_furniture', rating:4.6, priceHour:40, distance:'0.9 km', lat:52.2480, lng:20.9250 },
-  { id:'demo-6', emoji:'❄️', name:'Ola D.', catKey:'cat_snow', rating:4.9, priceHour:30, distance:'1.4 km', lat:52.2130, lng:21.0650 },
-  { id:'demo-7', emoji:'🚚', name:'Michał R.', catKey:'cat_delivery', rating:4.8, priceHour:45, distance:'2.6 km', lat:52.2630, lng:20.9850 },
-  { id:'demo-8', emoji:'📦', name:'Ewa J.', catKey:'cat_moving', rating:4.9, priceHour:42, distance:'0.5 km', lat:52.2170, lng:20.9820 }
-];
-let liveJobs = DEMO_JOBS;
-let liveWorkers = DEMO_WORKERS;
-let selectedJobId = 'demo-1';
+let liveJobs = [];
+let liveWorkers = [];
+let selectedJobId = null;
 let mapView = 'map';
 let mapInstance = null;
 const jobMarkers = {};
@@ -2495,7 +2495,7 @@ async function refreshRadarData(){
         lng: row.lng != null ? row.lng : 21.0122
       }));
     } else {
-      liveJobs = DEMO_JOBS;
+      liveJobs = [];
     }
   } else {
     const { data, error } = await sb.from('profiles').select().eq('role', 'worker');
@@ -2515,13 +2515,23 @@ async function refreshRadarData(){
         };
       });
     } else {
-      liveWorkers = DEMO_WORKERS;
+      liveWorkers = [];
     }
   }
   markersMode = null;
   rebuildMarkers();
   if(typeof renderJobList === 'function') renderJobList();
-  if(typeof showJob === 'function') showJob(selectedJobId, false);
+  if(selectedJobId != null && typeof showJob === 'function') showJob(selectedJobId, false);
+  const emptyEl = document.getElementById('map-empty-state');
+  if(emptyEl){
+    if(radarData().length === 0){
+      emptyEl.textContent = mode === 'workers' ? T[currentLang].empty_workers_radar : T[currentLang].empty_jobs_radar;
+      emptyEl.classList.remove('hidden');
+      document.getElementById('bottom-sheet').classList.add('hidden');
+    } else {
+      emptyEl.classList.add('hidden');
+    }
+  }
   refreshOwnTaskMarkers();
 }
 
@@ -2576,7 +2586,7 @@ function rebuildMarkers(){
   Object.values(jobMarkers).forEach(m => m.remove());
   Object.keys(jobMarkers).forEach(k => delete jobMarkers[k]);
   const data = radarData();
-  selectedJobId = data[0].id;
+  selectedJobId = data.length ? data[0].id : null;
   data.forEach(item => {
     const el = makeMarkerEl(item, item.id === selectedJobId);
     el.addEventListener('click', () => showJob(item.id, true));
@@ -2661,6 +2671,10 @@ function applyBrandTheme(map){
 function renderJobList(){
   const mode = radarMode();
   const data = radarData();
+  if(data.length === 0){
+    document.getElementById('job-list').innerHTML = `<div class="empty-state">${mode === 'workers' ? T[currentLang].empty_workers_radar : T[currentLang].empty_jobs_radar}</div>`;
+    return;
+  }
   const html = data.map(item => {
     if(mode === 'workers'){
       const cat = T[currentLang][item.catKey] || '';
@@ -2683,7 +2697,7 @@ function renderJobList(){
   document.getElementById('job-list').innerHTML = html;
   document.querySelectorAll('.job-row').forEach(el => {
     el.addEventListener('click', () => {
-      const id = Number(el.dataset.job);
+      const id = el.dataset.job;
       showJob(id, true);
       setMapView('map');
       const item = data.find(x => x.id === id);
@@ -2695,7 +2709,10 @@ function renderJobList(){
 function showJob(id, reveal){
   const mode = radarMode();
   const item = radarData().find(x => x.id === id);
-  if(!item) return;
+  if(!item){
+    document.getElementById('bottom-sheet').classList.add('hidden');
+    return;
+  }
   selectedJobId = id;
   document.getElementById('sheet-chip').textContent = item.emoji;
   const takeBtn = document.getElementById('sheet-take-job');
